@@ -9,11 +9,12 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
         }
         
@@ -21,29 +22,37 @@
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
         
         .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            padding: 30px;
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #4CAF50;
         }
         
         .header h1 {
-            color: #333;
+            font-size: 2.5rem;
             margin-bottom: 10px;
         }
         
         .header p {
-            color: #666;
+            font-size: 1.1rem;
+            opacity: 0.9;
         }
         
         .search-section {
-            margin-bottom: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
         }
         
         .search-box {
@@ -52,99 +61,108 @@
             margin-bottom: 15px;
         }
         
-        .search-box input {
+        #searchInput {
             flex: 1;
-            padding: 12px;
+            padding: 15px 20px;
             border: 2px solid #ddd;
-            border-radius: 5px;
+            border-radius: 10px;
             font-size: 16px;
+            transition: all 0.3s;
         }
         
-        .search-box input:focus {
+        #searchInput:focus {
             outline: none;
             border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
         }
         
-        .search-box button {
-            background: #4CAF50;
+        .search-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
             color: white;
             border: none;
-            padding: 0 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
+            padding: 0 30px;
+            border-radius: 10px;
             font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
         
-        .search-box button:hover {
-            background: #45a049;
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .search-tip {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
         }
         
         .stats {
-            display: flex;
-            justify-content: space-between;
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px 30px;
+            background: white;
         }
         
-        .stat-item {
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            border-color: #4CAF50;
+            transform: translateY(-5px);
         }
         
         .stat-value {
-            font-size: 24px;
+            font-size: 2rem;
             font-weight: bold;
             color: #4CAF50;
+            margin-bottom: 5px;
         }
         
         .stat-label {
-            font-size: 14px;
             color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
-        .student-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        .content {
+            padding: 0 30px 30px;
         }
         
-        .student-table th {
-            background: #4CAF50;
-            color: white;
-            padding: 12px;
-            text-align: left;
-        }
-        
-        .student-table td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .student-table tr:hover {
-            background: #f9f9f9;
-        }
-        
-        .no-results {
-            text-align: center;
-            padding: 40px;
-            color: #666;
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            border-left: 5px solid #c62828;
         }
         
         .loading {
             text-align: center;
-            padding: 40px;
+            padding: 50px 20px;
         }
         
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4CAF50;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4CAF50;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
         }
         
         @keyframes spin {
@@ -152,19 +170,80 @@
             100% { transform: rotate(360deg); }
         }
         
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+        .no-results {
             text-align: center;
+            padding: 50px 20px;
+            color: #666;
+            display: none;
+        }
+        
+        .no-results i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .student-table thead {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+        }
+        
+        .student-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .student-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.3s;
+        }
+        
+        .student-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .student-table td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+        
+        .prn-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        
+        .contact-cell {
+            min-width: 150px;
         }
         
         .contact-info {
             display: flex;
             align-items: center;
             gap: 10px;
+            justify-content: space-between;
+        }
+        
+        .contact-text {
+            flex: 1;
         }
         
         .copy-btn {
@@ -174,10 +253,51 @@
             cursor: pointer;
             font-size: 16px;
             padding: 5px;
+            border-radius: 5px;
+            transition: all 0.2s;
         }
         
         .copy-btn:hover {
             color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .email-link {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        
+        .email-link:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .search-btn {
+                padding: 15px;
+                width: 100%;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .student-table {
+                display: block;
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
@@ -189,58 +309,63 @@
         </div>
         
         <div class="search-section">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search by name, PRN, mobile or email...">
-                <button onclick="searchStudents()">Search</button>
-            </div>
-            <div style="text-align: center;">
-                <small style="color: #666;">Press Enter to search or leave empty to show all students</small>
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search by name, PRN, mobile or email...">
+                    <button class="search-btn" onclick="searchStudents()">Search</button>
+                </div>
+                <div class="search-tip">
+                    Press Enter to search or leave empty to show all students
+                </div>
             </div>
         </div>
         
         <div class="stats">
-            <div class="stat-item">
+            <div class="stat-card">
                 <div class="stat-value" id="totalCount">0</div>
                 <div class="stat-label">Total Students</div>
             </div>
-            <div class="stat-item">
+            <div class="stat-card">
                 <div class="stat-value" id="shownCount">0</div>
-                <div class="stat-label">Shown</div>
+                <div class="stat-label">Currently Showing</div>
             </div>
-            <div class="stat-item">
+            <div class="stat-card">
                 <div class="stat-value" id="searchCount">0</div>
                 <div class="stat-label">Search Results</div>
             </div>
         </div>
         
-        <div id="errorMessage" class="error" style="display: none;"></div>
-        
-        <div id="loading" class="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p>Loading student data from Google Sheets...</p>
+        <div class="content">
+            <div id="errorMessage" class="error"></div>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading student data from Google Sheets...</p>
+            </div>
+            
+            <div id="noResults" class="no-results">
+                <i>📭</i>
+                <h3>No students found</h3>
+                <p>Try a different search term or check your connection</p>
+            </div>
+            
+            <table class="student-table" id="studentTable">
+                <thead>
+                    <tr>
+                        <th>Sr. No.</th>
+                        <th>Year</th>
+                        <th>PRN</th>
+                        <th>Student Name</th>
+                        <th class="contact-cell">Student Mobile</th>
+                        <th class="contact-cell">Parent Mobile</th>
+                        <th class="contact-cell">Email</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
         </div>
-        
-        <div id="noResults" class="no-results" style="display: none;">
-            <h3>No students found</h3>
-            <p>Try a different search term or check your connection</p>
-        </div>
-        
-        <table class="student-table" id="studentTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>Sr. No.</th>
-                    <th>Year</th>
-                    <th>PRN</th>
-                    <th>Student Name</th>
-                    <th>Student Mobile</th>
-                    <th>Parent Mobile</th>
-                    <th>Email</th>
-                </tr>
-            </thead>
-            <tbody id="studentTableBody">
-                <!-- Data will be inserted here -->
-            </tbody>
-        </table>
     </div>
 
     <script>
@@ -252,10 +377,12 @@
         // Load data from Google Sheets
         async function loadData() {
             try {
-                showLoading(true);
+                showElement('loading', true);
+                showElement('noResults', false);
+                showElement('studentTable', false);
                 hideError();
                 
-                console.log('Loading data from:', APP_SCRIPT_URL);
+                console.log('Loading data from Apps Script...');
                 const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents`);
                 
                 if (!response.ok) {
@@ -267,18 +394,18 @@
                 
                 if (data.success) {
                     allStudents = data.students || [];
-                    console.log('Students loaded:', allStudents.length);
+                    console.log(`Loaded ${allStudents.length} students`);
                     displayStudents(allStudents);
                     updateStats();
-                    showLoading(false);
+                    showElement('loading', false);
                 } else {
-                    throw new Error(data.error || 'Failed to load data');
+                    throw new Error(data.error || 'Failed to load data from Google Sheets');
                 }
                 
             } catch (error) {
                 console.error('Error loading data:', error);
                 showError(`Failed to load data: ${error.message}`);
-                showLoading(false);
+                showElement('loading', false);
             }
         }
         
@@ -288,60 +415,47 @@
             tableBody.innerHTML = '';
             
             if (students.length === 0) {
-                document.getElementById('studentTable').style.display = 'none';
-                document.getElementById('noResults').style.display = 'block';
+                showElement('studentTable', false);
+                showElement('noResults', true);
                 document.getElementById('shownCount').textContent = '0';
                 return;
             }
             
-            students.forEach(student => {
+            students.forEach((student, index) => {
                 const row = document.createElement('tr');
                 
-                // Get email - try multiple field names
-                const email = student['Email ID'] || 
-                              student['Student Email ID'] || 
-                              student.email || 
-                              student.Email || 
-                              '';
-                
-                // Get mobile numbers
-                const studentMobile = student['Student Mobile'] || 
-                                     student['Student Mobile Number'] || 
-                                     student.student_mobile || 
-                                     '';
-                
-                const parentMobile = student['Parent Mobile'] || 
-                                    student['Parent Mobile Number'] || 
-                                    student.parent_mobile || 
-                                    '';
+                // Extract values with fallbacks
+                const srNo = student['Sr. No.'] || student.sr_no || (index + 1);
+                const year = student['Offering Year'] || student.offering_year || '2025-26';
+                const prn = student.PRN || student.prn || '';
+                const name = student['Student Name'] || student.name || '';
+                const studentMobile = student['Student Mobile'] || student.student_mobile || '';
+                const parentMobile = student['Parent Mobile'] || student.parent_mobile || '';
+                const email = student['Email ID'] || student.email || '';
                 
                 row.innerHTML = `
-                    <td>${student['Sr. No.'] || student.sr_no || ''}</td>
-                    <td>${student['Offering Year'] || student.offering_year || '2025-26'}</td>
-                    <td><strong>${student.PRN || student.prn || ''}</strong></td>
-                    <td>${student['Student Name'] || student.name || ''}</td>
-                    <td>
+                    <td>${srNo}</td>
+                    <td>${year}</td>
+                    <td><span class="prn-badge">${prn}</span></td>
+                    <td>${name}</td>
+                    <td class="contact-cell">
                         <div class="contact-info">
-                            <span>${studentMobile}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('${studentMobile}', 'Student Mobile')">
-                                📋
-                            </button>
+                            <div class="contact-text">${studentMobile}</div>
+                            ${studentMobile ? `<button class="copy-btn" onclick="copyToClipboard('${studentMobile}', 'Student Mobile')" title="Copy">📋</button>` : ''}
                         </div>
                     </td>
-                    <td>
+                    <td class="contact-cell">
                         <div class="contact-info">
-                            <span>${parentMobile}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('${parentMobile}', 'Parent Mobile')">
-                                📋
-                            </button>
+                            <div class="contact-text">${parentMobile}</div>
+                            ${parentMobile ? `<button class="copy-btn" onclick="copyToClipboard('${parentMobile}', 'Parent Mobile')" title="Copy">📋</button>` : ''}
                         </div>
                     </td>
-                    <td>
+                    <td class="contact-cell">
                         <div class="contact-info">
-                            <span>${email}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('${email}', 'Email')">
-                                📋
-                            </button>
+                            <div class="contact-text">
+                                ${email ? `<a href="mailto:${email}" class="email-link">${email}</a>` : ''}
+                            </div>
+                            ${email ? `<button class="copy-btn" onclick="copyToClipboard('${email}', 'Email')" title="Copy">📋</button>` : ''}
                         </div>
                     </td>
                 `;
@@ -349,14 +463,14 @@
                 tableBody.appendChild(row);
             });
             
-            document.getElementById('studentTable').style.display = 'table';
-            document.getElementById('noResults').style.display = 'none';
+            showElement('studentTable', true);
+            showElement('noResults', false);
             document.getElementById('shownCount').textContent = students.length;
         }
         
         // Search function
         function searchStudents() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
             console.log('Searching for:', searchTerm);
             
             if (!searchTerm) {
@@ -368,73 +482,70 @@
             const filteredStudents = allStudents.filter(student => {
                 const name = (student['Student Name'] || student.name || '').toLowerCase();
                 const prn = (student.PRN || student.prn || '').toLowerCase();
-                const mobile = (student['Student Mobile'] || student['Student Mobile Number'] || student.student_mobile || '').toLowerCase();
-                const email = (student['Email ID'] || student['Student Email ID'] || student.email || student.Email || '').toLowerCase();
+                const studentMobile = (student['Student Mobile'] || student.student_mobile || '').toLowerCase();
+                const parentMobile = (student['Parent Mobile'] || student.parent_mobile || '').toLowerCase();
+                const email = (student['Email ID'] || student.email || '').toLowerCase();
                 
-                const found = name.includes(searchTerm) || 
-                             prn.includes(searchTerm) || 
-                             mobile.includes(searchTerm) || 
-                             email.includes(searchTerm);
-                
-                return found;
+                return name.includes(searchTerm) || 
+                       prn.includes(searchTerm) || 
+                       studentMobile.includes(searchTerm) || 
+                       parentMobile.includes(searchTerm) || 
+                       email.includes(searchTerm);
             });
             
-            console.log('Filtered students:', filteredStudents.length);
+            console.log(`Found ${filteredStudents.length} results`);
             displayStudents(filteredStudents);
             document.getElementById('searchCount').textContent = filteredStudents.length;
         }
         
         // Copy to clipboard function
         function copyToClipboard(text, type) {
-            if (!text || text === 'undefined' || text === 'null') {
-                console.log('No text to copy');
-                return;
-            }
+            if (!text) return;
             
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification(`${type} copied: ${text}`);
+            // Remove any HTML tags if present
+            const cleanText = text.replace(/<[^>]*>/g, '');
+            
+            navigator.clipboard.writeText(cleanText).then(() => {
+                showNotification(`✓ ${type} copied to clipboard`);
             }).catch(err => {
                 console.error('Copy failed:', err);
-                // Fallback for older browsers
+                // Fallback method
                 const textArea = document.createElement('textarea');
-                textArea.value = text;
+                textArea.value = cleanText;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                showNotification(`${type} copied: ${text}`);
+                showNotification(`✓ ${type} copied to clipboard`);
             });
         }
         
         // Show notification
         function showNotification(message) {
+            // Remove existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
             const notification = document.createElement('div');
+            notification.className = 'notification';
             notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
                 background: #4CAF50;
                 color: white;
-                padding: 10px 20px;
-                border-radius: 5px;
-                z-index: 1000;
+                padding: 12px 24px;
+                border-radius: 8px;
+                z-index: 10000;
                 animation: slideIn 0.3s ease;
-                font-family: Arial, sans-serif;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             `;
             
             notification.textContent = message;
             document.body.appendChild(notification);
             
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        document.body.removeChild(notification);
-                    }
-                }, 300);
-            }, 2000);
-            
-            // Add styles for animation
+            // Add animation styles
             if (!document.querySelector('#notification-styles')) {
                 const style = document.createElement('style');
                 style.id = 'notification-styles';
@@ -450,6 +561,15 @@
                 `;
                 document.head.appendChild(style);
             }
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 2000);
         }
         
         // Update statistics
@@ -459,33 +579,30 @@
             document.getElementById('searchCount').textContent = '0';
         }
         
-        // Show/hide loading
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-            document.getElementById('studentTable').style.display = show ? 'none' : 'table';
+        // Show/hide elements
+        function showElement(id, show) {
+            document.getElementById(id).style.display = show ? 'block' : 'none';
         }
         
-        // Show error message
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
         }
         
-        // Hide error message
         function hideError() {
             document.getElementById('errorMessage').style.display = 'none';
         }
         
         // Initialize when page loads
-        window.onload = function() {
-            console.log('Page loaded');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing...');
             
-            // Show loading immediately
-            showLoading(true);
+            // Set up search input event listeners
+            const searchInput = document.getElementById('searchInput');
             
-            // Add Enter key support
-            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            // Enter key to search
+            searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     searchStudents();
                 }
@@ -493,23 +610,23 @@
             
             // Auto-search while typing (with delay)
             let searchTimeout;
-            document.getElementById('searchInput').addEventListener('input', function() {
+            searchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(searchStudents, 300);
+                searchTimeout = setTimeout(searchStudents, 500);
             });
+            
+            // Focus on search input
+            searchInput.focus();
             
             // Load data
             loadData();
-        };
+        });
         
-        // Debug function to check data
-        function debugData() {
+        // Debug function
+        window.debugData = function() {
             console.log('All students:', allStudents);
-            if (allStudents.length > 0) {
-                console.log('First student:', allStudents[0]);
-                console.log('Available keys:', Object.keys(allStudents[0]));
-            }
-        }
+            console.log('First student keys:', Object.keys(allStudents[0] || {}));
+        };
     </script>
 </body>
 </html>
