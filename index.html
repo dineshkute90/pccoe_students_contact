@@ -73,6 +73,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 16px;
         }
         
         .search-box button:hover {
@@ -171,7 +172,8 @@
             border: none;
             color: #666;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
+            padding: 5px;
         }
         
         .copy-btn:hover {
@@ -213,7 +215,7 @@
         
         <div id="errorMessage" class="error" style="display: none;"></div>
         
-        <div id="loading" class="loading">
+        <div id="loading" class="loading" style="display: none;">
             <div class="spinner"></div>
             <p>Loading student data from Google Sheets...</p>
         </div>
@@ -242,7 +244,7 @@
     </div>
 
     <script>
-        // Apps Script Web App URL - REPLACE THIS WITH YOUR DEPLOYED APPS SCRIPT URL
+        // Apps Script Web App URL
         const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOel5-9Cjl95azDnjAwzSSselqDzxY3XWHPx4AKphhbiKYsBOvJ7hnN_uzngmUd7kzkA/exec';
         
         let allStudents = [];
@@ -253,6 +255,7 @@
                 showLoading(true);
                 hideError();
                 
+                console.log('Loading data from:', APP_SCRIPT_URL);
                 const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents`);
                 
                 if (!response.ok) {
@@ -260,9 +263,11 @@
                 }
                 
                 const data = await response.json();
+                console.log('Data received:', data);
                 
                 if (data.success) {
                     allStudents = data.students || [];
+                    console.log('Students loaded:', allStudents.length);
                     displayStudents(allStudents);
                     updateStats();
                     showLoading(false);
@@ -292,6 +297,24 @@
             students.forEach(student => {
                 const row = document.createElement('tr');
                 
+                // Get email - try multiple field names
+                const email = student['Email ID'] || 
+                              student['Student Email ID'] || 
+                              student.email || 
+                              student.Email || 
+                              '';
+                
+                // Get mobile numbers
+                const studentMobile = student['Student Mobile'] || 
+                                     student['Student Mobile Number'] || 
+                                     student.student_mobile || 
+                                     '';
+                
+                const parentMobile = student['Parent Mobile'] || 
+                                    student['Parent Mobile Number'] || 
+                                    student.parent_mobile || 
+                                    '';
+                
                 row.innerHTML = `
                     <td>${student['Sr. No.'] || student.sr_no || ''}</td>
                     <td>${student['Offering Year'] || student.offering_year || '2025-26'}</td>
@@ -299,24 +322,24 @@
                     <td>${student['Student Name'] || student.name || ''}</td>
                     <td>
                         <div class="contact-info">
-                            <span>${student['Student Mobile Number'] || student.student_mobile || student['Student Mobile'] || ''}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('${student['Student Mobile Number'] || student.student_mobile || student['Student Mobile'] || ''}', 'Student Mobile')">
+                            <span>${studentMobile}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${studentMobile}', 'Student Mobile')">
                                 📋
                             </button>
                         </div>
                     </td>
                     <td>
                         <div class="contact-info">
-                            <span>${student['Parent Mobile Number'] || student.parent_mobile || student['Parent Mobile'] || ''}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('${student['Parent Mobile Number'] || student.parent_mobile || student['Parent Mobile'] || ''}', 'Parent Mobile')">
+                            <span>${parentMobile}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${parentMobile}', 'Parent Mobile')">
                                 📋
                             </button>
                         </div>
                     </td>
                     <td>
                         <div class="contact-info">
-                            <span>${student['Student Email ID'] || student.email || student.Email || ''}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('${student['Student Email ID'] || student.email || student.Email || ''}', 'Email')">
+                            <span>${email}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${email}', 'Email')">
                                 📋
                             </button>
                         </div>
@@ -334,6 +357,7 @@
         // Search function
         function searchStudents() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            console.log('Searching for:', searchTerm);
             
             if (!searchTerm) {
                 displayStudents(allStudents);
@@ -344,27 +368,41 @@
             const filteredStudents = allStudents.filter(student => {
                 const name = (student['Student Name'] || student.name || '').toLowerCase();
                 const prn = (student.PRN || student.prn || '').toLowerCase();
-                const mobile = (student['Student Mobile Number'] || student.student_mobile || student['Student Mobile'] || '').toLowerCase();
-                const email = (student['Student Email ID'] || student.email || student.Email || '').toLowerCase();
+                const mobile = (student['Student Mobile'] || student['Student Mobile Number'] || student.student_mobile || '').toLowerCase();
+                const email = (student['Email ID'] || student['Student Email ID'] || student.email || student.Email || '').toLowerCase();
                 
-                return name.includes(searchTerm) || 
-                       prn.includes(searchTerm) || 
-                       mobile.includes(searchTerm) || 
-                       email.includes(searchTerm);
+                const found = name.includes(searchTerm) || 
+                             prn.includes(searchTerm) || 
+                             mobile.includes(searchTerm) || 
+                             email.includes(searchTerm);
+                
+                return found;
             });
             
+            console.log('Filtered students:', filteredStudents.length);
             displayStudents(filteredStudents);
             document.getElementById('searchCount').textContent = filteredStudents.length;
         }
         
         // Copy to clipboard function
         function copyToClipboard(text, type) {
-            if (!text || text === 'undefined') return;
+            if (!text || text === 'undefined' || text === 'null') {
+                console.log('No text to copy');
+                return;
+            }
             
             navigator.clipboard.writeText(text).then(() => {
                 showNotification(`${type} copied: ${text}`);
             }).catch(err => {
                 console.error('Copy failed:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification(`${type} copied: ${text}`);
             });
         }
         
@@ -381,6 +419,7 @@
                 border-radius: 5px;
                 z-index: 1000;
                 animation: slideIn 0.3s ease;
+                font-family: Arial, sans-serif;
             `;
             
             notification.textContent = message;
@@ -423,6 +462,7 @@
         // Show/hide loading
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('studentTable').style.display = show ? 'none' : 'table';
         }
         
         // Show error message
@@ -439,6 +479,11 @@
         
         // Initialize when page loads
         window.onload = function() {
+            console.log('Page loaded');
+            
+            // Show loading immediately
+            showLoading(true);
+            
             // Add Enter key support
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -453,14 +498,18 @@
                 searchTimeout = setTimeout(searchStudents, 300);
             });
             
-            // Check if Apps Script URL is set
-            if (APP_SCRIPT_URL.includes('YOUR_APPS_SCRIPT_URL')) {
-                showError('Please update the APP_SCRIPT_URL in the code with your deployed Apps Script URL');
-                showLoading(false);
-            } else {
-                loadData();
-            }
+            // Load data
+            loadData();
         };
+        
+        // Debug function to check data
+        function debugData() {
+            console.log('All students:', allStudents);
+            if (allStudents.length > 0) {
+                console.log('First student:', allStudents[0]);
+                console.log('Available keys:', Object.keys(allStudents[0]));
+            }
+        }
     </script>
 </body>
 </html>
