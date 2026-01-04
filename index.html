@@ -1,0 +1,960 @@
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Google Sheets API -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+    // Login credentials
+    const VALID_CREDENTIALS = {
+        'pccoeash': 'ashpccoe@2025',  // Regular user
+        'admin': 'pccoe@admin'        // Admin user
+    };
+    
+    // Google Sheets Configuration
+    const GOOGLE_SHEETS_CONFIG = {
+        apiKey: 'AIzaSyBe-XnVbvd8o4PPg6M06G8HDNcQ_humjYE', // Your Google API Key
+        spreadsheetId: '1cT3FR_22tASFZf6_WNSiAShUPK2KmySdTKNh_-CJ7SM', // Your Google Sheet ID
+        sheetName: 'Students', // Name of your sheet tab
+        range: 'A:G' // Columns A to G
+    };
+    
+    let dataTable = null;
+    let allStudents = [];
+    let isLoggedIn = false;
+    let currentSearchResults = [];
+    let lastSearchCriteria = '';
+    let isAdmin = false;
+    let editModal = null;
+    let addModal = null;
+    let gapiLoaded = false;
+
+    // Email Templates (keep the same as before)
+    const EMAIL_TEMPLATES = {
+        'defaulter': {
+            name: 'Defaulter Student Notice',
+            subject: 'Important Notice Regarding Your Academic Standing - PCCOE',
+            body: `Dear [Student Name],
+
+This is regarding your academic performance in the current semester. Our records indicate that you are falling behind in the following areas:
+
+- Attendance requirements
+- Assignment submissions
+- Internal assessments
+
+You are requested to meet your faculty advisor immediately to discuss your academic progress and create a plan for improvement.
+
+Please bring this to the attention of your parents/guardians as well.
+
+PRN: [PRN]
+Student Name: [Student Name]
+
+Best regards,
+Department of Applied Sciences & Humanities
+PCCOE, Pune`
+        },
+        'exam_performance': {
+            name: 'Exam Performance Review',
+            subject: 'Discussion on Your Recent Exam Performance - PCCOE',
+            body: `Dear [Student Name],
+
+This email is to discuss your performance in the recent Summative Assessments. Our analysis shows room for improvement in your scores.
+
+Key Observations:
+- Below-average performance in recent exams
+- Need for focused preparation
+- Regular revision required
+
+We recommend that you:
+1. Meet with your subject faculty for guidance
+2. Join remedial classes if available
+3. Follow a structured study schedule
+
+We believe with proper guidance and effort, you can significantly improve your performance.
+
+PRN: [PRN]
+Student Name: [Student Name]
+
+Sincerely,
+Examination Cell
+PCCOE, Pune`
+        },
+        'attendance': {
+            name: 'Low Attendance Alert',
+            subject: 'Urgent: Low Attendance Alert - PCCOE',
+            body: `Dear [Student Name],
+
+This is to inform you that your attendance percentage has fallen below the required minimum (75%) for the current semester.
+
+Current Attendance: [Attendance]%
+Required Minimum: 75%
+
+As per university norms, students with less than 75% attendance may be debarred from appearing for the end-semester examinations.
+
+Immediate Actions Required:
+1. Start attending all classes regularly
+2. Submit leave applications for any absences with valid reasons
+3. Meet your class coordinator to discuss this matter
+
+Please ensure regular attendance henceforth to avoid any academic consequences.
+
+PRN: [PRN]
+Student Name: [Student Name]
+
+Regards,
+Department of Applied Sciences & Humanities
+PCCOE, Pune`
+        },
+        'exam_schedule': {
+            name: 'SA Exam Schedule',
+            subject: 'Summative Assessment (SA) Examination Schedule - PCCOE',
+            body: `Dear Student,
+
+Please find below the schedule for the upcoming Summative Assessment (SA) Examinations:
+
+**Exam Schedule:**
+- Date: [Date Range]
+- Time: As per seating arrangement
+- Venue: PCCOE Examination Halls
+
+**Important Guidelines:**
+1. Carry your college ID card and hall ticket
+2. Reach the examination center 30 minutes before the exam
+3. Follow all examination rules and regulations
+4. Electronic devices are strictly prohibited
+
+Seating arrangement will be displayed on the notice boards one week before the exams.
+
+For any queries, please contact the examination cell.
+
+PRN: [PRN]
+Student Name: [Student Name]
+
+Best wishes,
+Examination Cell
+PCCOE, Pune`
+        },
+        'parent_meeting': {
+            name: 'Parent-Teacher Meeting',
+            subject: 'Invitation for Parent-Teacher Meeting - PCCOE',
+            body: `Respected Parents,
+
+You are cordially invited to attend the Parent-Teacher Meeting scheduled as per details below:
+
+**Meeting Details:**
+- Date: [Date]
+- Time: [Time]
+- Venue: PCCOE Campus, Department of Applied Sciences & Humanities
+
+**Agenda:**
+1. Discussion of your ward's academic performance
+2. Attendance and behavioral aspects
+3. Future planning and guidance
+4. One-on-one interaction with faculty
+
+Your presence is highly valued and will help us work together for the betterment of your ward's academic journey.
+
+Student Details:
+PRN: [PRN]
+Student Name: [Student Name]
+
+We look forward to your participation.
+
+Warm regards,
+Department of Applied Sciences & Humanities
+PCCOE, Pune`
+        }
+    };
+
+    // Initialize Google API
+    function initGoogleAPI() {
+        return new Promise((resolve, reject) => {
+            if (gapiLoaded) {
+                resolve();
+                return;
+            }
+            
+            gapi.load('client', () => {
+                gapi.client.init({
+                    'apiKey': GOOGLE_SHEETS_CONFIG.apiKey,
+                    'discoveryDocs': ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+                }).then(() => {
+                    gapiLoaded = true;
+                    console.log('Google Sheets API initialized');
+                    resolve();
+                }).catch(error => {
+                    console.error('Error initializing Google API:', error);
+                    reject(error);
+                });
+            });
+        });
+    }
+
+    // Load data from Google Sheets
+    async function loadGoogleSheetsData() {
+        if (!isLoggedIn) return;
+        
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('dataStatus').textContent = 'Loading from Google Sheets...';
+        document.getElementById('noResultsMessage').style.display = 'none';
+        disableExportButtons();
+        
+        try {
+            // Initialize Google API
+            await initGoogleAPI();
+            
+            // Load data from Google Sheets
+            const response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
+                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!${GOOGLE_SHEETS_CONFIG.range}`,
+            });
+            
+            const rows = response.result.values;
+            
+            if (!rows || rows.length === 0) {
+                showCopySuccess('No data found in Google Sheet', 'error');
+                document.getElementById('dataStatus').textContent = 'No Data';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('noResultsMessage').style.display = 'block';
+                disableExportButtons();
+                return;
+            }
+            
+            // Process Google Sheets data
+            processGoogleSheetsData(rows);
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dataStatus').textContent = 'Loaded from Google Sheets';
+            document.getElementById('noResultsMessage').style.display = 'block';
+            enableExportButtons();
+            
+        } catch (error) {
+            console.error('Error loading Google Sheets data:', error);
+            document.getElementById('dataStatus').textContent = 'Error Loading';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('noResultsMessage').style.display = 'block';
+            disableExportButtons();
+            
+            // Fallback to CSV if Google Sheets fails
+            showCopySuccess('Could not load from Google Sheets. Please check your internet connection and API configuration.', 'error');
+            
+            // Try to load from CSV as fallback
+            setTimeout(() => {
+                loadCSVFallback();
+            }, 2000);
+        }
+    }
+
+    // Fallback to CSV if Google Sheets fails
+    async function loadCSVFallback() {
+        try {
+            const csvUrl = 'https://raw.githubusercontent.com/dineshkute90/pccoe_fy_contact_details/main/contact_testing_csv.csv';
+            const response = await fetch(csvUrl);
+            
+            if (!response.ok) throw new Error('CSV fetch failed');
+            
+            const csvText = await response.text();
+            const Papa = await import('https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js');
+            
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processCSVData(results.data);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('dataStatus').textContent = 'Loaded from CSV (Fallback)';
+                    enableExportButtons();
+                }
+            });
+        } catch (error) {
+            console.error('Fallback CSV also failed:', error);
+            showCopySuccess('Both Google Sheets and CSV failed to load. Please check your connection.', 'error');
+        }
+    }
+
+    // Process Google Sheets data
+    function processGoogleSheetsData(rows) {
+        allStudents = [];
+        
+        // First row contains headers
+        const headers = rows[0];
+        
+        // Find column indices
+        const srNoIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('sr') || h.toLowerCase().includes('no') || h === 'Sr. No.'
+        );
+        const offeringYearIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('offering') || h.toLowerCase().includes('year')
+        );
+        const prnIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('prn')
+        );
+        const nameIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('name') || h.toLowerCase().includes('student')
+        );
+        const studentMobileIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('student') && h.toLowerCase().includes('mobile')
+        );
+        const parentMobileIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('parent') && h.toLowerCase().includes('mobile')
+        );
+        const emailIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('email') || h.toLowerCase().includes('mail')
+        );
+        
+        // Process data rows (skip header row)
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            
+            const student = {
+                sr_no: srNoIndex !== -1 ? row[srNoIndex] || (i) : i,
+                offering_year: offeringYearIndex !== -1 ? row[offeringYearIndex] || '2022-2025' : '2022-2025',
+                prn: prnIndex !== -1 ? row[prnIndex] || '' : '',
+                name: nameIndex !== -1 ? row[nameIndex] || '' : '',
+                student_mobile: studentMobileIndex !== -1 ? row[studentMobileIndex] || '' : '',
+                parent_mobile: parentMobileIndex !== -1 ? row[parentMobileIndex] || '' : '',
+                email: emailIndex !== -1 ? row[emailIndex] || '' : ''
+            };
+            
+            // Only add student if they have at least a PRN or Name
+            if (student.prn || student.name) {
+                allStudents.push(student);
+            }
+        }
+        
+        console.log('Processed students from Google Sheets:', allStudents.length);
+        
+        // Initialize DataTable with the data
+        initDataTable(allStudents);
+        
+        // Update statistics
+        updateTotalCount();
+        updateExportCount();
+        enableExportButtons();
+    }
+
+    // Save data to Google Sheets (for admin operations)
+    async function saveToGoogleSheets(students) {
+        if (!isAdmin || !gapiLoaded) return false;
+        
+        try {
+            // Convert students to 2D array
+            const values = students.map(student => [
+                student.sr_no || '',
+                student.offering_year || '2022-2025',
+                student.prn || '',
+                student.name || '',
+                student.student_mobile || '',
+                student.parent_mobile || '',
+                student.email || ''
+            ]);
+            
+            // Add headers
+            values.unshift(['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID']);
+            
+            // Clear existing data and write new data
+            await gapi.client.sheets.spreadsheets.values.clear({
+                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
+                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!A1:Z1000`,
+            });
+            
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
+                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!A1`,
+                valueInputOption: 'USER_ENTERED',
+                resource: { values: values }
+            });
+            
+            return true;
+        } catch (error) {
+            console.error('Error saving to Google Sheets:', error);
+            showCopySuccess('Error saving to Google Sheets. Data saved locally only.', 'error');
+            return false;
+        }
+    }
+
+    // Add new student to Google Sheets
+    async function addStudentToGoogleSheets(newStudent) {
+        if (!isAdmin || !gapiLoaded) return false;
+        
+        try {
+            // Get current data to append
+            const values = [
+                [
+                    newStudent.sr_no || (allStudents.length + 1),
+                    newStudent.offering_year || '2025-26',
+                    newStudent.prn || '',
+                    newStudent.name || '',
+                    newStudent.student_mobile || '',
+                    newStudent.parent_mobile || 'NA',
+                    newStudent.email || ''
+                ]
+            ];
+            
+            // Append new row
+            await gapi.client.sheets.spreadsheets.values.append({
+                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
+                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!A1:G1`,
+                valueInputOption: 'USER_ENTERED',
+                insertDataOption: 'INSERT_ROWS',
+                resource: { values: values }
+            });
+            
+            return true;
+        } catch (error) {
+            console.error('Error adding student to Google Sheets:', error);
+            showCopySuccess('Error adding to Google Sheets. Student added locally only.', 'error');
+            return false;
+        }
+    }
+
+    // Check if user is already logged in
+    function checkLoginStatus() {
+        const savedLogin = localStorage.getItem('pccoeLogin');
+        if (savedLogin) {
+            const loginData = JSON.parse(savedLogin);
+            if (loginData.loggedIn && loginData.expiry > Date.now()) {
+                isLoggedIn = true;
+                isAdmin = loginData.isAdmin || false;
+                showMainApp();
+            }
+        }
+    }
+
+    // Handle login
+    function handleLogin(event) {
+        event.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('rememberMe').checked;
+        const loginError = document.getElementById('loginError');
+        
+        // Clear previous error
+        loginError.style.display = 'none';
+        
+        // Validate credentials
+        if (VALID_CREDENTIALS[username] && VALID_CREDENTIALS[username] === password) {
+            isLoggedIn = true;
+            isAdmin = (username === 'admin');
+            
+            // Save login if "Remember me" is checked
+            if (rememberMe) {
+                const loginData = {
+                    loggedIn: true,
+                    isAdmin: isAdmin,
+                    expiry: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+                };
+                localStorage.setItem('pccoeLogin', JSON.stringify(loginData));
+            } else {
+                // Session only
+                sessionStorage.setItem('pccoeSession', JSON.stringify({ loggedIn: true, isAdmin: isAdmin }));
+            }
+            
+            showMainApp();
+        } else {
+            loginError.style.display = 'block';
+            document.getElementById('password').value = '';
+        }
+    }
+
+    // Logout function
+    function logout() {
+        isLoggedIn = false;
+        isAdmin = false;
+        localStorage.removeItem('pccoeLogin');
+        sessionStorage.removeItem('pccoeSession');
+        showLogin();
+    }
+
+    // Show login screen
+    function showLogin() {
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('mainSection').style.display = 'none';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('username').focus();
+    }
+
+    // Show main application
+    function showMainApp() {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('mainSection').style.display = 'block';
+        
+        // Set current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+        
+        // Show/hide admin features
+        if (isAdmin) {
+            document.getElementById('adminFeatures').style.display = 'block';
+        } else {
+            document.getElementById('adminFeatures').style.display = 'none';
+        }
+        
+        // Hide elements initially
+        document.getElementById('noResultsMessage').style.display = 'block';
+        document.getElementById('searchResultsHeader').style.display = 'none';
+        
+        // Initialize modals
+        editModal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+        addModal = new bootstrap.Modal(document.getElementById('addStudentModal'));
+        
+        // Load data from Google Sheets
+        loadGoogleSheetsData();
+    }
+
+    // Initialize DataTable (keep this function mostly the same, just rename from loadCSVData to loadGoogleSheetsData)
+    function initDataTable(data) {
+        if (dataTable) {
+            dataTable.destroy();
+            $('#studentTable').empty();
+        }
+
+        // Show/hide action column based on admin status
+        const actionColumn = isAdmin ? {
+            data: null,
+            render: function(data, type, row, meta) {
+                return `
+                    <button class="edit-btn" onclick="editStudent(${meta.row})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="delete-btn" onclick="deleteStudent(${meta.row})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+            }
+        } : null;
+
+        const columns = [
+            { 
+                data: null,
+                render: function(data, type, row, meta) {
+                    return meta.row + 1;
+                }
+            },
+            { 
+                data: 'offering_year',
+                render: function(data) {
+                    return data || '2022-2025';
+                }
+            },
+            { 
+                data: 'prn',
+                render: function(data) {
+                    return `<span class="badge-prn">${data}</span>`;
+                }
+            },
+            { data: 'name' },
+            { 
+                data: 'student_mobile',
+                render: function(data) {
+                    return `
+                        <div class="mobile-container">
+                            <div class="mobile-text">
+                                <i class="fas fa-phone text-success me-1"></i>${data}
+                            </div>
+                            <button class="copy-icon-btn" onclick="copyToClipboard('${data}', 'Student mobile number')" title="Copy Student Mobile">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            },
+            { 
+                data: 'parent_mobile',
+                render: function(data) {
+                    return `
+                        <div class="mobile-container">
+                            <div class="mobile-text">
+                                <i class="fas fa-user-friends text-primary me-1"></i>${data}
+                            </div>
+                            <button class="copy-icon-btn" onclick="copyToClipboard('${data}', 'Parent mobile number')" title="Copy Parent Mobile">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            },
+            { 
+                data: 'email',
+                render: function(data, type, row, meta) {
+                    const email = data || '';
+                    const studentName = row.name || '';
+                    const prn = row.prn || '';
+                    
+                    return `
+                        <div class="email-container">
+                            <div class="email-text">
+                                <i class="fas fa-envelope text-danger me-1"></i>${email}
+                            </div>
+                            <div class="d-flex gap-1">
+                                <button class="copy-icon-btn" onclick="copyToClipboard('${email}', 'Email address')" title="Copy Email">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                                <button class="send-email-btn" onclick="sendSingleEmail('${email}', '${studentName}', '${prn}')" title="Send Email">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="email-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="sendTemplateEmail('${email}', '${studentName}', '${prn}', 'defaulter')">
+                                Defaulter
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="sendTemplateEmail('${email}', '${studentName}', '${prn}', 'exam_performance')">
+                                Exam
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="sendTemplateEmail('${email}', '${studentName}', '${prn}', 'attendance')">
+                                Attendance
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        ];
+
+        // Add action column for admin
+        if (actionColumn) {
+            columns.push(actionColumn);
+            document.getElementById('actionColumnHeader').style.display = '';
+        } else {
+            document.getElementById('actionColumnHeader').style.display = 'none';
+        }
+
+        dataTable = $('#studentTable').DataTable({
+            data: data,
+            columns: columns,
+            pageLength: 10,
+            lengthMenu: [], // Empty array to hide the "Show entries" dropdown
+            language: {
+                search: "Search in results:",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                infoEmpty: "No entries found",
+                infoFiltered: "(filtered from _MAX_ total entries)"
+            },
+            drawCallback: function() {
+                // Update export count after each draw
+                updateExportCount();
+                updateCurrentSearchResults();
+            }
+        });
+
+        // Update statistics
+        updateTotalCount();
+        updateExportCount();
+    }
+
+    // ... (keep all your existing functions like searchTable, searchMultiplePRNs, etc. unchanged) ...
+
+    // Update the Reload Data button function
+    function loadCSVData() {
+        // Rename this function to avoid confusion, or update it to load from Google Sheets
+        loadGoogleSheetsData();
+    }
+
+    // Add new student (updated to save to Google Sheets)
+    async function addNewStudent() {
+        if (!isAdmin) {
+            showCopySuccess('Admin access required', 'error');
+            return;
+        }
+        
+        const prn = document.getElementById('addPRN').value.trim();
+        const name = document.getElementById('addName').value.trim();
+        const offeringYear = document.getElementById('addOfferingYear').value.trim() || '2025-26';
+        const studentMobile = document.getElementById('addStudentMobile').value.trim();
+        const parentMobile = document.getElementById('addParentMobile').value.trim() || 'NA';
+        const email = document.getElementById('addEmail').value.trim();
+        
+        // Validation
+        if (!prn || !name || !studentMobile || !email) {
+            showCopySuccess('Please fill all required fields (PRN, Name, Mobile, Email)', 'error');
+            return;
+        }
+        
+        // Check if PRN already exists
+        if (allStudents.some(student => student.prn === prn)) {
+            showCopySuccess(`PRN ${prn} already exists. Please use a different PRN.`, 'error');
+            return;
+        }
+        
+        // Create new student object
+        const newStudent = {
+            sr_no: allStudents.length + 1,
+            offering_year: offeringYear,
+            prn: prn,
+            name: name,
+            student_mobile: studentMobile,
+            parent_mobile: parentMobile,
+            email: email
+        };
+        
+        // Add to array
+        allStudents.push(newStudent);
+        
+        // Update DataTable
+        dataTable.row.add(newStudent).draw();
+        
+        // Update statistics
+        updateTotalCount();
+        
+        // Save to Google Sheets if available
+        if (gapiLoaded) {
+            const success = await addStudentToGoogleSheets(newStudent);
+            if (success) {
+                showCopySuccess(`Student ${name} (${prn}) added to Google Sheets`, 'success');
+            } else {
+                showCopySuccess(`Student ${name} (${prn}) added locally only`, 'warning');
+            }
+        } else {
+            showCopySuccess(`Student ${name} (${prn}) added locally. Google Sheets not available.`, 'warning');
+        }
+        
+        // Close modal
+        addModal.hide();
+    }
+
+    // Save student changes (updated to save to Google Sheets)
+    async function saveStudentChanges() {
+        if (!isAdmin) {
+            showCopySuccess('Admin access required', 'error');
+            return;
+        }
+        
+        const index = parseInt(document.getElementById('editStudentIndex').value);
+        const student = allStudents[index];
+        
+        // Get updated values
+        const updatedStudent = {
+            sr_no: student.sr_no,
+            offering_year: document.getElementById('editOfferingYear').value.trim() || '2025-26',
+            prn: document.getElementById('editPRN').value.trim(),
+            name: document.getElementById('editName').value.trim(),
+            student_mobile: document.getElementById('editStudentMobile').value.trim(),
+            parent_mobile: document.getElementById('editParentMobile').value.trim() || 'NA',
+            email: document.getElementById('editEmail').value.trim()
+        };
+        
+        // Validation
+        if (!updatedStudent.prn || !updatedStudent.name || !updatedStudent.student_mobile || !updatedStudent.email) {
+            showCopySuccess('Please fill all required fields (PRN, Name, Mobile, Email)', 'error');
+            return;
+        }
+        
+        // Update in array
+        allStudents[index] = updatedStudent;
+        
+        // Update DataTable
+        dataTable.row(index).data(updatedStudent).draw();
+        
+        // Save all data to Google Sheets
+        if (gapiLoaded) {
+            const success = await saveToGoogleSheets(allStudents);
+            if (success) {
+                showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated in Google Sheets`, 'success');
+            } else {
+                showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally only`, 'warning');
+            }
+        } else {
+            showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally`, 'success');
+        }
+        
+        // Close modal
+        editModal.hide();
+    }
+
+    // Delete student (updated to save to Google Sheets)
+    async function deleteStudent(index) {
+        if (!isAdmin) {
+            showCopySuccess('Admin access required', 'error');
+            return;
+        }
+        
+        const student = allStudents[index];
+        
+        if (confirm(`Are you sure you want to delete student ${student.name} (${student.prn})?`)) {
+            // Remove from array
+            allStudents.splice(index, 1);
+            
+            // Update DataTable
+            dataTable.row(index).remove().draw();
+            
+            // Update statistics
+            updateTotalCount();
+            
+            // Save to Google Sheets if available
+            if (gapiLoaded) {
+                const success = await saveToGoogleSheets(allStudents);
+                if (success) {
+                    showCopySuccess(`Student ${student.name} (${student.prn}) deleted from Google Sheets`, 'success');
+                } else {
+                    showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally only`, 'warning');
+                }
+            } else {
+                showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally`, 'success');
+            }
+        }
+    }
+
+    // Export entire database (updated for Google Sheets)
+    async function exportAllData() {
+        if (!isAdmin) {
+            showCopySuccess('Admin access required', 'error');
+            return;
+        }
+        
+        const includeTimestamp = document.getElementById('includeTimestamp').checked;
+        const format = document.getElementById('exportFormat').value;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        
+        let fileName = 'PCCOE_Complete_Database';
+        
+        if (includeTimestamp) {
+            fileName += `_${timestamp}`;
+        }
+        
+        fileName += `.${format}`;
+        
+        // Prepare worksheet data
+        const worksheetData = [
+            ['PCCOE Student Directory - Department of Applied Sciences & Humanities'],
+            ['Exported on: ' + new Date().toLocaleString('en-IN')],
+            ['Source: Google Sheets - ' + GOOGLE_SHEETS_CONFIG.spreadsheetId],
+            ['Total Records: ' + allStudents.length],
+            [''], // Empty row
+            ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID']
+        ];
+        
+        // Add all student data
+        allStudents.forEach((student, index) => {
+            worksheetData.push([
+                index + 1,
+                student.offering_year || '2022-2025',
+                student.prn || '',
+                student.name || '',
+                student.student_mobile || '',
+                student.parent_mobile || '',
+                student.email || ''
+            ]);
+        });
+        
+        // Create workbook
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        
+        // Set column widths
+        const colWidths = [
+            { wch: 8 },  // Sr. No.
+            { wch: 15 }, // Offering Year
+            { wch: 12 }, // PRN
+            { wch: 25 }, // Student Name
+            { wch: 15 }, // Student Mobile
+            { wch: 15 }, // Parent Mobile
+            { wch: 30 }  // Email ID
+        ];
+        worksheet['!cols'] = colWidths;
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+        
+        try {
+            if (format === 'xlsx') {
+                XLSX.writeFile(workbook, fileName);
+            } else {
+                // For CSV, convert to CSV string
+                const csv = XLSX.utils.sheet_to_csv(worksheet);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+            
+            showCopySuccess(`Exported complete database (${allStudents.length} records) to ${fileName}`, 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            showCopySuccess('Error exporting file. Please try again.', 'error');
+        }
+    }
+
+    // ... (keep all other functions unchanged) ...
+
+    // Update copy success message (unchanged)
+    function showCopySuccess(message, type = 'success') {
+        const bgColor = type === 'error' ? '#dc3545' : '#28a745';
+        
+        // Create a temporary notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${bgColor};
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: fadeInOut 2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 300px;
+        `;
+        
+        // Add CSS for animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-20px); }
+                10% { opacity: 1; transform: translateY(0); }
+                90% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        notification.innerHTML = `
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                document.body.removeChild(notification);
+            }
+            if (style.parentNode) {
+                document.head.removeChild(style);
+            }
+        }, 2000);
+    }
+
+    // Initialize on page load
+    $(document).ready(function() {
+        // Setup login form
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        
+        // Check if user is already logged in
+        checkLoginStatus();
+        
+        if (!isLoggedIn) {
+            showLogin();
+        }
+        
+        // ... (keep all other initialization code unchanged) ...
+    });
+</script>
