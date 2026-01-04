@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PCCOE Student Directory</title>
+    <title>PCCOE Student Search</title>
     <style>
         * {
             margin: 0;
@@ -12,174 +12,133 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
             padding: 20px;
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .header {
             text-align: center;
-            color: white;
             margin-bottom: 30px;
-            padding: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #4CAF50;
         }
         
         .header h1 {
-            font-size: 2.5rem;
+            color: #333;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
         .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+            color: #666;
         }
         
-        .search-box {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        .search-section {
             margin-bottom: 30px;
         }
         
-        .search-input-group {
+        .search-box {
             display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
-        .search-input-group input {
+        .search-box input {
             flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
             font-size: 16px;
-            transition: border-color 0.3s;
         }
         
-        .search-input-group input:focus {
+        .search-box input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #4CAF50;
         }
         
-        .search-btn {
-            background: #667eea;
+        .search-box button {
+            background: #4CAF50;
             color: white;
             border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 0 25px;
+            border-radius: 5px;
             cursor: pointer;
-            transition: background 0.3s;
+            font-weight: bold;
         }
         
-        .search-btn:hover {
-            background: #5a67d8;
+        .search-box button:hover {
+            background: #45a049;
         }
         
-        .results-section {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .results-header {
+        .stats {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
             margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
         }
         
-        .results-count {
-            font-size: 1.2rem;
-            color: #333;
-            font-weight: 600;
-        }
-        
-        .no-results {
+        .stat-item {
             text-align: center;
-            padding: 50px 20px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            font-size: 14px;
             color: #666;
-            font-size: 1.1rem;
         }
         
         .student-table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 20px;
         }
         
         .student-table th {
-            background: #f8f9fa;
-            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px;
             text-align: left;
-            color: #333;
-            font-weight: 600;
-            border-bottom: 2px solid #e0e0e0;
         }
         
         .student-table td {
-            padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
         }
         
         .student-table tr:hover {
-            background: #f8f9ff;
+            background: #f9f9f9;
         }
         
-        .prn-badge {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        
-        .contact-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .contact-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        
-        .phone-icon {
-            background: #4caf50;
-        }
-        
-        .email-icon {
-            background: #ff9800;
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
         }
         
         .loading {
             text-align: center;
             padding: 40px;
-            color: #667eea;
-            font-size: 1.2rem;
         }
         
-        .loading-spinner {
+        .spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border-top: 4px solid #4CAF50;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -192,167 +151,130 @@
             100% { transform: rotate(360deg); }
         }
         
-        @media (max-width: 768px) {
-            .search-input-group {
-                flex-direction: column;
-            }
-            
-            .student-table {
-                display: block;
-                overflow-x: auto;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .contact-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .copy-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .copy-btn:hover {
+            color: #4CAF50;
         }
     </style>
-    <!-- Add Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>PCCOE Student Directory</h1>
-            <p>Search for students by name, PRN, mobile number, or email</p>
+            <p>Search student information from Google Sheets</p>
         </div>
         
-        <div class="search-box">
-            <div class="search-input-group">
-                <input type="text" id="searchInput" placeholder="Search by name, PRN, mobile, or email...">
-                <button class="search-btn" onclick="searchStudents()">
-                    <i class="fas fa-search"></i> Search
-                </button>
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, PRN, mobile or email...">
+                <button onclick="searchStudents()">Search</button>
             </div>
             <div style="text-align: center;">
-                <small style="color: #666;">Example: Search for "SHREYA" or "125B1G006" or "9130311378"</small>
+                <small style="color: #666;">Press Enter to search or leave empty to show all students</small>
             </div>
         </div>
         
-        <div class="results-section">
-            <div class="results-header">
-                <div class="results-count" id="resultsCount">0 students found</div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total Students</div>
             </div>
-            
-            <div id="loading" class="loading">
-                <div class="loading-spinner"></div>
-                <p>Loading student data...</p>
+            <div class="stat-item">
+                <div class="stat-value" id="shownCount">0</div>
+                <div class="stat-label">Shown</div>
             </div>
-            
-            <div id="noResults" class="no-results" style="display: none;">
-                <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
-                <p>No students found. Try a different search term.</p>
+            <div class="stat-item">
+                <div class="stat-value" id="searchCount">0</div>
+                <div class="stat-label">Search Results</div>
             </div>
-            
-            <table class="student-table" id="studentTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Sr. No.</th>
-                        <th>Year</th>
-                        <th>PRN</th>
-                        <th>Student Name</th>
-                        <th>Mobile</th>
-                        <th>Parent Mobile</th>
-                        <th>Email</th>
-                    </tr>
-                </thead>
-                <tbody id="studentTableBody">
-                    <!-- Student data will be inserted here -->
-                </tbody>
-            </table>
         </div>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading student data from Google Sheets...</p>
+        </div>
+        
+        <div id="noResults" class="no-results" style="display: none;">
+            <h3>No students found</h3>
+            <p>Try a different search term or check your connection</p>
+        </div>
+        
+        <table class="student-table" id="studentTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Sr. No.</th>
+                    <th>Year</th>
+                    <th>PRN</th>
+                    <th>Student Name</th>
+                    <th>Student Mobile</th>
+                    <th>Parent Mobile</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody id="studentTableBody">
+                <!-- Data will be inserted here -->
+            </tbody>
+        </table>
     </div>
 
     <script>
-        // Google Sheets API Configuration
-        const GOOGLE_SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE'; // Replace with your Google Sheet ID
-        const API_KEY = 'YOUR_GOOGLE_API_KEY_HERE'; // Replace with your Google API Key
-        const SHEET_NAME = 'Sheet1'; // Change if your sheet has a different name
+        // Apps Script Web App URL - REPLACE THIS WITH YOUR DEPLOYED APPS SCRIPT URL
+        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_APPS_SCRIPT_URL/exec';
         
         let allStudents = [];
         
-        // Function to load data from Google Sheet
-        async function loadGoogleSheetData() {
+        // Load data from Google Sheets
+        async function loadData() {
             try {
-                // Hide results table initially
-                document.getElementById('studentTable').style.display = 'none';
-                document.getElementById('noResults').style.display = 'none';
-                document.getElementById('loading').style.display = 'block';
+                showLoading(true);
+                hideError();
                 
-                // Google Sheets API URL
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
-                
-                const response = await fetch(url);
+                const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents`);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
                 
                 const data = await response.json();
                 
-                // Process the data
-                allStudents = processSheetData(data.values);
-                
-                // Display all students initially
-                displayStudents(allStudents);
-                
-                // Hide loading spinner
-                document.getElementById('loading').style.display = 'none';
+                if (data.success) {
+                    allStudents = data.students || [];
+                    displayStudents(allStudents);
+                    updateStats();
+                    showLoading(false);
+                } else {
+                    throw new Error(data.error || 'Failed to load data');
+                }
                 
             } catch (error) {
                 console.error('Error loading data:', error);
-                document.getElementById('loading').innerHTML = `
-                    <p style="color: #dc3545;">
-                        <i class="fas fa-exclamation-circle"></i> 
-                        Error loading data: ${error.message}
-                    </p>
-                    <p style="margin-top: 15px; font-size: 0.9rem;">
-                        Make sure you've set up the Google Sheet ID and API Key correctly.
-                    </p>
-                `;
+                showError(`Failed to load data: ${error.message}`);
+                showLoading(false);
             }
-        }
-        
-        // Process Google Sheets data
-        function processSheetData(rows) {
-            if (!rows || rows.length < 2) {
-                return [];
-            }
-            
-            const students = [];
-            const headers = rows[0]; // First row contains headers
-            
-            // Find column indices
-            const colIndices = {
-                srNo: headers.indexOf('Sr. No.'),
-                year: headers.indexOf('Offering Year'),
-                prn: headers.indexOf('PRN'),
-                name: headers.indexOf('Student Name'),
-                mobile: headers.indexOf('Student Mobile'),
-                parentMobile: headers.indexOf('Parent Mobile'),
-                email: headers.indexOf('Email ID')
-            };
-            
-            // Process each row starting from index 1
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                
-                const student = {
-                    srNo: row[colIndices.srNo] || '',
-                    year: row[colIndices.year] || '2025-26',
-                    prn: row[colIndices.prn] || '',
-                    name: row[colIndices.name] || '',
-                    mobile: row[colIndices.mobile] || '',
-                    parentMobile: row[colIndices.parentMobile] || '',
-                    email: row[colIndices.email] || ''
-                };
-                
-                if (student.prn || student.name) {
-                    students.push(student);
-                }
-            }
-            
-            return students;
         }
         
         // Display students in table
@@ -363,7 +285,7 @@
             if (students.length === 0) {
                 document.getElementById('studentTable').style.display = 'none';
                 document.getElementById('noResults').style.display = 'block';
-                document.getElementById('resultsCount').textContent = '0 students found';
+                document.getElementById('shownCount').textContent = '0';
                 return;
             }
             
@@ -371,32 +293,32 @@
                 const row = document.createElement('tr');
                 
                 row.innerHTML = `
-                    <td>${student.srNo}</td>
-                    <td>${student.year}</td>
-                    <td><span class="prn-badge">${student.prn}</span></td>
-                    <td>${student.name}</td>
+                    <td>${student['Sr. No.'] || student.sr_no || ''}</td>
+                    <td>${student['Offering Year'] || student.offering_year || '2025-26'}</td>
+                    <td><strong>${student.PRN || student.prn || ''}</strong></td>
+                    <td>${student['Student Name'] || student.name || ''}</td>
                     <td>
                         <div class="contact-info">
-                            <div class="contact-icon phone-icon">
-                                <i class="fas fa-phone"></i>
-                            </div>
-                            <span>${student.mobile}</span>
+                            <span>${student['Student Mobile Number'] || student.student_mobile || student['Student Mobile'] || ''}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${student['Student Mobile Number'] || student.student_mobile || student['Student Mobile'] || ''}', 'Student Mobile')">
+                                📋
+                            </button>
                         </div>
                     </td>
                     <td>
                         <div class="contact-info">
-                            <div class="contact-icon phone-icon">
-                                <i class="fas fa-user-friends"></i>
-                            </div>
-                            <span>${student.parentMobile || student.mobile}</span>
+                            <span>${student['Parent Mobile Number'] || student.parent_mobile || student['Parent Mobile'] || ''}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${student['Parent Mobile Number'] || student.parent_mobile || student['Parent Mobile'] || ''}', 'Parent Mobile')">
+                                📋
+                            </button>
                         </div>
                     </td>
                     <td>
                         <div class="contact-info">
-                            <div class="contact-icon email-icon">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                            <span>${student.email}</span>
+                            <span>${student['Student Email ID'] || student.email || student.Email || ''}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${student['Student Email ID'] || student.email || student.Email || ''}', 'Email')">
+                                📋
+                            </button>
                         </div>
                     </td>
                 `;
@@ -406,7 +328,7 @@
             
             document.getElementById('studentTable').style.display = 'table';
             document.getElementById('noResults').style.display = 'none';
-            document.getElementById('resultsCount').textContent = `${students.length} student${students.length !== 1 ? 's' : ''} found`;
+            document.getElementById('shownCount').textContent = students.length;
         }
         
         // Search function
@@ -415,71 +337,130 @@
             
             if (!searchTerm) {
                 displayStudents(allStudents);
+                document.getElementById('searchCount').textContent = '0';
                 return;
             }
             
             const filteredStudents = allStudents.filter(student => {
-                return (
-                    (student.name && student.name.toLowerCase().includes(searchTerm)) ||
-                    (student.prn && student.prn.toLowerCase().includes(searchTerm)) ||
-                    (student.mobile && student.mobile.includes(searchTerm)) ||
-                    (student.parentMobile && student.parentMobile.includes(searchTerm)) ||
-                    (student.email && student.email.toLowerCase().includes(searchTerm))
-                );
+                const name = (student['Student Name'] || student.name || '').toLowerCase();
+                const prn = (student.PRN || student.prn || '').toLowerCase();
+                const mobile = (student['Student Mobile Number'] || student.student_mobile || student['Student Mobile'] || '').toLowerCase();
+                const email = (student['Student Email ID'] || student.email || student.Email || '').toLowerCase();
+                
+                return name.includes(searchTerm) || 
+                       prn.includes(searchTerm) || 
+                       mobile.includes(searchTerm) || 
+                       email.includes(searchTerm);
             });
             
             displayStudents(filteredStudents);
+            document.getElementById('searchCount').textContent = filteredStudents.length;
         }
         
-        // Enter key to search
-        document.getElementById('searchInput').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                searchStudents();
-            }
-        });
+        // Copy to clipboard function
+        function copyToClipboard(text, type) {
+            if (!text || text === 'undefined') return;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(`${type} copied: ${text}`);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+            });
+        }
         
-        // Auto-search while typing (with delay)
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(searchStudents, 300);
-        });
-        
-        // Load data when page loads
-        window.onload = loadGoogleSheetData;
-    </script>
-
-    <script>
-        // Instructions for setting up Google Sheets API
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if API keys are not set
-            if (GOOGLE_SHEET_ID === 'YOUR_GOOGLE_SHEET_ID_HERE') {
-                const loadingDiv = document.getElementById('loading');
-                loadingDiv.innerHTML = `
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 20px; text-align: left;">
-                        <h3 style="color: #856404; margin-bottom: 15px;">
-                            <i class="fas fa-exclamation-triangle"></i> Setup Required
-                        </h3>
-                        <p style="margin-bottom: 10px; color: #856404;">
-                            <strong>To use this student directory, follow these steps:</strong>
-                        </p>
-                        <ol style="margin-left: 20px; color: #856404;">
-                            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-                            <li>Create a new project or select existing one</li>
-                            <li>Enable Google Sheets API</li>
-                            <li>Create API Credentials (API Key)</li>
-                            <li>Share your Google Sheet with the API service account</li>
-                            <li>Copy your Google Sheet ID from the URL</li>
-                            <li>Update the JavaScript code with your Sheet ID and API Key</li>
-                        </ol>
-                        <p style="margin-top: 15px; color: #856404;">
-                            <strong>Google Sheet ID:</strong> Found in your spreadsheet URL<br>
-                            Example: <code>https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/edit</code>
-                        </p>
-                    </div>
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 2000);
+            
+            // Add styles for animation
+            if (!document.querySelector('#notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'notification-styles';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
                 `;
+                document.head.appendChild(style);
             }
-        });
+        }
+        
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalCount').textContent = allStudents.length;
+            document.getElementById('shownCount').textContent = allStudents.length;
+            document.getElementById('searchCount').textContent = '0';
+        }
+        
+        // Show/hide loading
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // Hide error message
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        // Initialize when page loads
+        window.onload = function() {
+            // Add Enter key support
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchStudents();
+                }
+            });
+            
+            // Auto-search while typing (with delay)
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(searchStudents, 300);
+            });
+            
+            // Check if Apps Script URL is set
+            if (APP_SCRIPT_URL.includes('YOUR_APPS_SCRIPT_URL')) {
+                showError('Please update the APP_SCRIPT_URL in the code with your deployed Apps Script URL');
+                showLoading(false);
+            } else {
+                loadData();
+            }
+        };
     </script>
 </body>
 </html>
