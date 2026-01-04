@@ -4,9 +4,6 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- Google Sheets API -->
-<script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
     // Login credentials
@@ -15,13 +12,8 @@
         'admin': 'pccoe@admin'        // Admin user
     };
     
-    // Google Sheets Configuration
-    const GOOGLE_SHEETS_CONFIG = {
-        apiKey: 'AIzaSyBe-XnVbvd8o4PPg6M06G8HDNcQ_humjYE', // Your Google API Key
-        spreadsheetId: '1cT3FR_22tASFZf6_WNSiAShUPK2KmySdTKNh_-CJ7SM', // Your Google Sheet ID
-        sheetName: 'Students', // Name of your sheet tab
-        range: 'A:G' // Columns A to G
-    };
+    // Apps Script Web App URL - You'll get this after deploying your script
+    const APP_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
     
     let dataTable = null;
     let allStudents = [];
@@ -31,9 +23,8 @@
     let isAdmin = false;
     let editModal = null;
     let addModal = null;
-    let gapiLoaded = false;
 
-    // Email Templates (keep the same as before)
+    // Email Templates (keep the same)
     const EMAIL_TEMPLATES = {
         'defaulter': {
             name: 'Defaulter Student Notice',
@@ -170,31 +161,7 @@ PCCOE, Pune`
         }
     };
 
-    // Initialize Google API
-    function initGoogleAPI() {
-        return new Promise((resolve, reject) => {
-            if (gapiLoaded) {
-                resolve();
-                return;
-            }
-            
-            gapi.load('client', () => {
-                gapi.client.init({
-                    'apiKey': GOOGLE_SHEETS_CONFIG.apiKey,
-                    'discoveryDocs': ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-                }).then(() => {
-                    gapiLoaded = true;
-                    console.log('Google Sheets API initialized');
-                    resolve();
-                }).catch(error => {
-                    console.error('Error initializing Google API:', error);
-                    reject(error);
-                });
-            });
-        });
-    }
-
-    // Load data from Google Sheets
+    // Load data from Google Sheets via Apps Script
     async function loadGoogleSheetsData() {
         if (!isLoggedIn) return;
         
@@ -204,33 +171,24 @@ PCCOE, Pune`
         disableExportButtons();
         
         try {
-            // Initialize Google API
-            await initGoogleAPI();
+            const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents`);
             
-            // Load data from Google Sheets
-            const response = await gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
-                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!${GOOGLE_SHEETS_CONFIG.range}`,
-            });
-            
-            const rows = response.result.values;
-            
-            if (!rows || rows.length === 0) {
-                showCopySuccess('No data found in Google Sheet', 'error');
-                document.getElementById('dataStatus').textContent = 'No Data';
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('noResultsMessage').style.display = 'block';
-                disableExportButtons();
-                return;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            // Process Google Sheets data
-            processGoogleSheetsData(rows);
+            const data = await response.json();
             
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dataStatus').textContent = 'Loaded from Google Sheets';
-            document.getElementById('noResultsMessage').style.display = 'block';
-            enableExportButtons();
+            if (data.success) {
+                processGoogleSheetsData(data.students);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dataStatus').textContent = 'Loaded from Google Sheets';
+                document.getElementById('noResultsMessage').style.display = 'block';
+                enableExportButtons();
+                showCopySuccess('Data loaded successfully from Google Sheets', 'success');
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
             
         } catch (error) {
             console.error('Error loading Google Sheets data:', error);
@@ -239,8 +197,7 @@ PCCOE, Pune`
             document.getElementById('noResultsMessage').style.display = 'block';
             disableExportButtons();
             
-            // Fallback to CSV if Google Sheets fails
-            showCopySuccess('Could not load from Google Sheets. Please check your internet connection and API configuration.', 'error');
+            showCopySuccess('Could not load from Google Sheets. Please check your Apps Script URL.', 'error');
             
             // Try to load from CSV as fallback
             setTimeout(() => {
@@ -249,7 +206,7 @@ PCCOE, Pune`
         }
     }
 
-    // Fallback to CSV if Google Sheets fails
+    // Fallback to CSV if Apps Script fails
     async function loadCSVFallback() {
         try {
             const csvUrl = 'https://raw.githubusercontent.com/dineshkute90/pccoe_fy_contact_details/main/contact_testing_csv.csv';
@@ -258,73 +215,54 @@ PCCOE, Pune`
             if (!response.ok) throw new Error('CSV fetch failed');
             
             const csvText = await response.text();
-            const Papa = await import('https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js');
             
-            Papa.parse(csvText, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    processCSVData(results.data);
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('dataStatus').textContent = 'Loaded from CSV (Fallback)';
-                    enableExportButtons();
-                }
-            });
+            // Dynamically load PapaParse if needed
+            if (typeof Papa === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js';
+                script.onload = function() {
+                    parseCSV(csvText);
+                };
+                document.head.appendChild(script);
+            } else {
+                parseCSV(csvText);
+            }
         } catch (error) {
             console.error('Fallback CSV also failed:', error);
             showCopySuccess('Both Google Sheets and CSV failed to load. Please check your connection.', 'error');
         }
     }
 
-    // Process Google Sheets data
-    function processGoogleSheetsData(rows) {
-        allStudents = [];
-        
-        // First row contains headers
-        const headers = rows[0];
-        
-        // Find column indices
-        const srNoIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('sr') || h.toLowerCase().includes('no') || h === 'Sr. No.'
-        );
-        const offeringYearIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('offering') || h.toLowerCase().includes('year')
-        );
-        const prnIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('prn')
-        );
-        const nameIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('name') || h.toLowerCase().includes('student')
-        );
-        const studentMobileIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('student') && h.toLowerCase().includes('mobile')
-        );
-        const parentMobileIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('parent') && h.toLowerCase().includes('mobile')
-        );
-        const emailIndex = headers.findIndex(h => 
-            h.toLowerCase().includes('email') || h.toLowerCase().includes('mail')
-        );
-        
-        // Process data rows (skip header row)
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            
-            const student = {
-                sr_no: srNoIndex !== -1 ? row[srNoIndex] || (i) : i,
-                offering_year: offeringYearIndex !== -1 ? row[offeringYearIndex] || '2022-2025' : '2022-2025',
-                prn: prnIndex !== -1 ? row[prnIndex] || '' : '',
-                name: nameIndex !== -1 ? row[nameIndex] || '' : '',
-                student_mobile: studentMobileIndex !== -1 ? row[studentMobileIndex] || '' : '',
-                parent_mobile: parentMobileIndex !== -1 ? row[parentMobileIndex] || '' : '',
-                email: emailIndex !== -1 ? row[emailIndex] || '' : ''
-            };
-            
-            // Only add student if they have at least a PRN or Name
-            if (student.prn || student.name) {
-                allStudents.push(student);
+    function parseCSV(csvText) {
+        Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                processCSVData(results.data);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dataStatus').textContent = 'Loaded from CSV (Fallback)';
+                enableExportButtons();
+            },
+            error: function(error) {
+                console.error('CSV parsing error:', error);
+                showCopySuccess('Error parsing CSV file', 'error');
             }
-        }
+        });
+    }
+
+    // Process Google Sheets data
+    function processGoogleSheetsData(students) {
+        allStudents = students.map((student, index) => {
+            return {
+                sr_no: student.sr_no || student['Sr. No.'] || index + 1,
+                offering_year: student.offering_year || student['Offering Year'] || '2022-2025',
+                prn: student.prn || student.PRN || '',
+                name: student.name || student['Student Name'] || '',
+                student_mobile: student.student_mobile || student['Student Mobile Number'] || student['Student Mobile'] || '',
+                parent_mobile: student.parent_mobile || student['Parent Mobile Number'] || student['Parent Mobile'] || '',
+                email: student.email || student['Student Email ID'] || student.Email || ''
+            };
+        });
         
         console.log('Processed students from Google Sheets:', allStudents.length);
         
@@ -337,77 +275,127 @@ PCCOE, Pune`
         enableExportButtons();
     }
 
-    // Save data to Google Sheets (for admin operations)
+    // Process CSV data (for fallback)
+    function processCSVData(data) {
+        allStudents = [];
+        
+        data.forEach((row, index) => {
+            const student = {
+                sr_no: row['Sr. No.'] || row['sr_no'] || row['Sr No'] || index + 1,
+                offering_year: row['Offering Year'] || row['offering_year'] || row['Offering_Year'] || '2022-2025',
+                prn: row['PRN'] || row['prn'] || row['PRN Number'] || '',
+                name: row['Student Name'] || row['name'] || row['Student_Name'] || row['Name'] || '',
+                student_mobile: row['Student Mobile Number'] || row['student_mobile'] || row['Student Mobile'] || row['Student_Mobile'] || row['Mobile'] || '',
+                parent_mobile: row['Parent Mobile Number'] || row['parent_mobile'] || row['Parent Mobile'] || row['Parent_Mobile'] || row['Parent Phone'] || '',
+                email: row['Student Email ID'] || row['email'] || row['Student Email'] || row['Student_Email'] || row['Email'] || ''
+            };
+            
+            if (student.prn || student.name) {
+                allStudents.push(student);
+            }
+        });
+        
+        console.log('Processed students from CSV:', allStudents.length);
+        
+        initDataTable(allStudents);
+        updateTotalCount();
+        updateExportCount();
+        enableExportButtons();
+    }
+
+    // Save data via Apps Script
     async function saveToGoogleSheets(students) {
-        if (!isAdmin || !gapiLoaded) return false;
+        if (!isAdmin) return false;
         
         try {
-            // Convert students to 2D array
-            const values = students.map(student => [
-                student.sr_no || '',
-                student.offering_year || '2022-2025',
-                student.prn || '',
-                student.name || '',
-                student.student_mobile || '',
-                student.parent_mobile || '',
-                student.email || ''
-            ]);
-            
-            // Add headers
-            values.unshift(['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID']);
-            
-            // Clear existing data and write new data
-            await gapi.client.sheets.spreadsheets.values.clear({
-                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
-                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!A1:Z1000`,
+            const response = await fetch(APP_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'saveStudents',
+                    students: students
+                })
             });
             
-            await gapi.client.sheets.spreadsheets.values.update({
-                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
-                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!A1`,
-                valueInputOption: 'USER_ENTERED',
-                resource: { values: values }
-            });
-            
-            return true;
+            const data = await response.json();
+            return data.success;
         } catch (error) {
             console.error('Error saving to Google Sheets:', error);
-            showCopySuccess('Error saving to Google Sheets. Data saved locally only.', 'error');
             return false;
         }
     }
 
-    // Add new student to Google Sheets
+    // Add student via Apps Script
     async function addStudentToGoogleSheets(newStudent) {
-        if (!isAdmin || !gapiLoaded) return false;
+        if (!isAdmin) return false;
         
         try {
-            // Get current data to append
-            const values = [
-                [
-                    newStudent.sr_no || (allStudents.length + 1),
-                    newStudent.offering_year || '2025-26',
-                    newStudent.prn || '',
-                    newStudent.name || '',
-                    newStudent.student_mobile || '',
-                    newStudent.parent_mobile || 'NA',
-                    newStudent.email || ''
-                ]
-            ];
-            
-            // Append new row
-            await gapi.client.sheets.spreadsheets.values.append({
-                spreadsheetId: GOOGLE_SHEETS_CONFIG.spreadsheetId,
-                range: `${GOOGLE_SHEETS_CONFIG.sheetName}!A1:G1`,
-                valueInputOption: 'USER_ENTERED',
-                insertDataOption: 'INSERT_ROWS',
-                resource: { values: values }
+            const response = await fetch(APP_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'addStudent',
+                    student: newStudent
+                })
             });
             
-            return true;
+            const data = await response.json();
+            return data.success;
         } catch (error) {
-            console.error('Error adding student to Google Sheets:', error);
-            showCopySuccess('Error adding to Google Sheets. Student added locally only.', 'error');
+            console.error('Error adding student:', error);
+            return false;
+        }
+    }
+
+    // Update student via Apps Script
+    async function updateStudentInGoogleSheets(updatedStudent, index) {
+        if (!isAdmin) return false;
+        
+        try {
+            const response = await fetch(APP_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'updateStudent',
+                    student: updatedStudent,
+                    index: index
+                })
+            });
+            
+            const data = await response.json();
+            return data.success;
+        } catch (error) {
+            console.error('Error updating student:', error);
+            return false;
+        }
+    }
+
+    // Delete student via Apps Script
+    async function deleteStudentFromGoogleSheets(index) {
+        if (!isAdmin) return false;
+        
+        try {
+            const response = await fetch(APP_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'deleteStudent',
+                    index: index
+                })
+            });
+            
+            const data = await response.json();
+            return data.success;
+        } catch (error) {
+            console.error('Error deleting student:', error);
             return false;
         }
     }
@@ -508,11 +496,11 @@ PCCOE, Pune`
         editModal = new bootstrap.Modal(document.getElementById('editStudentModal'));
         addModal = new bootstrap.Modal(document.getElementById('addStudentModal'));
         
-        // Load data from Google Sheets
+        // Load data from Google Sheets via Apps Script
         loadGoogleSheetsData();
     }
 
-    // Initialize DataTable (keep this function mostly the same, just rename from loadCSVData to loadGoogleSheetsData)
+    // Initialize DataTable (keep this function mostly the same)
     function initDataTable(data) {
         if (dataTable) {
             dataTable.destroy();
@@ -652,15 +640,10 @@ PCCOE, Pune`
         updateExportCount();
     }
 
-    // ... (keep all your existing functions like searchTable, searchMultiplePRNs, etc. unchanged) ...
+    // Keep all your existing search, export, and email functions unchanged
+    // ... (All your existing searchTable, searchMultiplePRNs, clearSearch, exportSearchResults, email functions remain exactly the same) ...
 
-    // Update the Reload Data button function
-    function loadCSVData() {
-        // Rename this function to avoid confusion, or update it to load from Google Sheets
-        loadGoogleSheetsData();
-    }
-
-    // Add new student (updated to save to Google Sheets)
+    // Add new student (updated for Apps Script)
     async function addNewStudent() {
         if (!isAdmin) {
             showCopySuccess('Admin access required', 'error');
@@ -706,23 +689,23 @@ PCCOE, Pune`
         // Update statistics
         updateTotalCount();
         
-        // Save to Google Sheets if available
-        if (gapiLoaded) {
+        // Save to Google Sheets via Apps Script
+        if (APP_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
             const success = await addStudentToGoogleSheets(newStudent);
             if (success) {
                 showCopySuccess(`Student ${name} (${prn}) added to Google Sheets`, 'success');
             } else {
-                showCopySuccess(`Student ${name} (${prn}) added locally only`, 'warning');
+                showCopySuccess(`Student ${name} (${prn}) added locally only. Sync with Google Sheets failed.`, 'warning');
             }
         } else {
-            showCopySuccess(`Student ${name} (${prn}) added locally. Google Sheets not available.`, 'warning');
+            showCopySuccess(`Student ${name} (${prn}) added locally. Configure Apps Script URL to sync with Google Sheets.`, 'warning');
         }
         
         // Close modal
         addModal.hide();
     }
 
-    // Save student changes (updated to save to Google Sheets)
+    // Save student changes (updated for Apps Script)
     async function saveStudentChanges() {
         if (!isAdmin) {
             showCopySuccess('Admin access required', 'error');
@@ -755,23 +738,23 @@ PCCOE, Pune`
         // Update DataTable
         dataTable.row(index).data(updatedStudent).draw();
         
-        // Save all data to Google Sheets
-        if (gapiLoaded) {
-            const success = await saveToGoogleSheets(allStudents);
+        // Save to Google Sheets via Apps Script
+        if (APP_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+            const success = await updateStudentInGoogleSheets(updatedStudent, index);
             if (success) {
                 showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated in Google Sheets`, 'success');
             } else {
-                showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally only`, 'warning');
+                showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally only. Sync with Google Sheets failed.`, 'warning');
             }
         } else {
-            showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally`, 'success');
+            showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally. Configure Apps Script URL to sync with Google Sheets.`, 'warning');
         }
         
         // Close modal
         editModal.hide();
     }
 
-    // Delete student (updated to save to Google Sheets)
+    // Delete student (updated for Apps Script)
     async function deleteStudent(index) {
         if (!isAdmin) {
             showCopySuccess('Admin access required', 'error');
@@ -790,108 +773,26 @@ PCCOE, Pune`
             // Update statistics
             updateTotalCount();
             
-            // Save to Google Sheets if available
-            if (gapiLoaded) {
-                const success = await saveToGoogleSheets(allStudents);
+            // Delete from Google Sheets via Apps Script
+            if (APP_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+                const success = await deleteStudentFromGoogleSheets(index);
                 if (success) {
                     showCopySuccess(`Student ${student.name} (${student.prn}) deleted from Google Sheets`, 'success');
                 } else {
-                    showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally only`, 'warning');
+                    showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally only. Sync with Google Sheets failed.`, 'warning');
                 }
             } else {
-                showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally`, 'success');
+                showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally. Configure Apps Script URL to sync with Google Sheets.`, 'warning');
             }
         }
     }
 
-    // Export entire database (updated for Google Sheets)
-    async function exportAllData() {
-        if (!isAdmin) {
-            showCopySuccess('Admin access required', 'error');
-            return;
-        }
-        
-        const includeTimestamp = document.getElementById('includeTimestamp').checked;
-        const format = document.getElementById('exportFormat').value;
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        
-        let fileName = 'PCCOE_Complete_Database';
-        
-        if (includeTimestamp) {
-            fileName += `_${timestamp}`;
-        }
-        
-        fileName += `.${format}`;
-        
-        // Prepare worksheet data
-        const worksheetData = [
-            ['PCCOE Student Directory - Department of Applied Sciences & Humanities'],
-            ['Exported on: ' + new Date().toLocaleString('en-IN')],
-            ['Source: Google Sheets - ' + GOOGLE_SHEETS_CONFIG.spreadsheetId],
-            ['Total Records: ' + allStudents.length],
-            [''], // Empty row
-            ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID']
-        ];
-        
-        // Add all student data
-        allStudents.forEach((student, index) => {
-            worksheetData.push([
-                index + 1,
-                student.offering_year || '2022-2025',
-                student.prn || '',
-                student.name || '',
-                student.student_mobile || '',
-                student.parent_mobile || '',
-                student.email || ''
-            ]);
-        });
-        
-        // Create workbook
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        
-        // Set column widths
-        const colWidths = [
-            { wch: 8 },  // Sr. No.
-            { wch: 15 }, // Offering Year
-            { wch: 12 }, // PRN
-            { wch: 25 }, // Student Name
-            { wch: 15 }, // Student Mobile
-            { wch: 15 }, // Parent Mobile
-            { wch: 30 }  // Email ID
-        ];
-        worksheet['!cols'] = colWidths;
-        
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
-        
-        try {
-            if (format === 'xlsx') {
-                XLSX.writeFile(workbook, fileName);
-            } else {
-                // For CSV, convert to CSV string
-                const csv = XLSX.utils.sheet_to_csv(worksheet);
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', fileName);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            }
-            
-            showCopySuccess(`Exported complete database (${allStudents.length} records) to ${fileName}`, 'success');
-        } catch (error) {
-            console.error('Export error:', error);
-            showCopySuccess('Error exporting file. Please try again.', 'error');
-        }
+    // Update the Reload Data button function
+    function loadCSVData() {
+        loadGoogleSheetsData();
     }
 
-    // ... (keep all other functions unchanged) ...
-
-    // Update copy success message (unchanged)
+    // Show copy success message (unchanged)
     function showCopySuccess(message, type = 'success') {
         const bgColor = type === 'error' ? '#dc3545' : '#28a745';
         
@@ -955,6 +856,49 @@ PCCOE, Pune`
             showLogin();
         }
         
-        // ... (keep all other initialization code unchanged) ...
+        // Add enter key support for search
+        $(document).on('keypress', '#searchPRN, #searchName, #multiPRNSearch', function(e) {
+            if (e.which === 13 && isLoggedIn) {
+                if ($(this).attr('id') === 'multiPRNSearch') {
+                    searchMultiplePRNs();
+                } else {
+                    searchTable();
+                }
+            }
+        });
+        
+        // Auto-search after typing
+        let searchTimer;
+        $(document).on('keyup', '#searchPRN, #searchName', function() {
+            if (isLoggedIn) {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(searchTable, 300);
+            }
+        });
+        
+        // Auto-search for multi-PRN
+        let multiPRNTimer;
+        $(document).on('keyup', '#multiPRNSearch', function() {
+            if (isLoggedIn) {
+                clearTimeout(multiPRNTimer);
+                multiPRNTimer = setTimeout(function() {
+                    const input = document.getElementById('multiPRNSearch').value.trim();
+                    if (input) {
+                        searchMultiplePRNs();
+                    }
+                }, 500);
+            }
+        });
+        
+        // Handle paste event for Excel data
+        document.getElementById('multiPRNSearch').addEventListener('paste', function(e) {
+            // Let the paste happen first
+            setTimeout(() => {
+                // Auto-trigger search after paste
+                if (this.value.trim()) {
+                    searchMultiplePRNs();
+                }
+            }, 100);
+        });
     });
 </script>
