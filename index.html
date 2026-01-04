@@ -1,904 +1,485 @@
-<!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<script>
-    // Login credentials
-    const VALID_CREDENTIALS = {
-        'pccoeash': 'ashpccoe@2025',  // Regular user
-        'admin': 'pccoe@admin'        // Admin user
-    };
-    
-    // Apps Script Web App URL - You'll get this after deploying your script
-    const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMcFA2O1-hca-x5ehp9bVqLnXGT_fXTeDKlL1LbhxYzz2elvYXvhcQMmqY6kRDXqLYyQ/exec';
-    
-    let dataTable = null;
-    let allStudents = [];
-    let isLoggedIn = false;
-    let currentSearchResults = [];
-    let lastSearchCriteria = '';
-    let isAdmin = false;
-    let editModal = null;
-    let addModal = null;
-
-    // Email Templates (keep the same)
-    const EMAIL_TEMPLATES = {
-        'defaulter': {
-            name: 'Defaulter Student Notice',
-            subject: 'Important Notice Regarding Your Academic Standing - PCCOE',
-            body: `Dear [Student Name],
-
-This is regarding your academic performance in the current semester. Our records indicate that you are falling behind in the following areas:
-
-- Attendance requirements
-- Assignment submissions
-- Internal assessments
-
-You are requested to meet your faculty advisor immediately to discuss your academic progress and create a plan for improvement.
-
-Please bring this to the attention of your parents/guardians as well.
-
-PRN: [PRN]
-Student Name: [Student Name]
-
-Best regards,
-Department of Applied Sciences & Humanities
-PCCOE, Pune`
-        },
-        'exam_performance': {
-            name: 'Exam Performance Review',
-            subject: 'Discussion on Your Recent Exam Performance - PCCOE',
-            body: `Dear [Student Name],
-
-This email is to discuss your performance in the recent Summative Assessments. Our analysis shows room for improvement in your scores.
-
-Key Observations:
-- Below-average performance in recent exams
-- Need for focused preparation
-- Regular revision required
-
-We recommend that you:
-1. Meet with your subject faculty for guidance
-2. Join remedial classes if available
-3. Follow a structured study schedule
-
-We believe with proper guidance and effort, you can significantly improve your performance.
-
-PRN: [PRN]
-Student Name: [Student Name]
-
-Sincerely,
-Examination Cell
-PCCOE, Pune`
-        },
-        'attendance': {
-            name: 'Low Attendance Alert',
-            subject: 'Urgent: Low Attendance Alert - PCCOE',
-            body: `Dear [Student Name],
-
-This is to inform you that your attendance percentage has fallen below the required minimum (75%) for the current semester.
-
-Current Attendance: [Attendance]%
-Required Minimum: 75%
-
-As per university norms, students with less than 75% attendance may be debarred from appearing for the end-semester examinations.
-
-Immediate Actions Required:
-1. Start attending all classes regularly
-2. Submit leave applications for any absences with valid reasons
-3. Meet your class coordinator to discuss this matter
-
-Please ensure regular attendance henceforth to avoid any academic consequences.
-
-PRN: [PRN]
-Student Name: [Student Name]
-
-Regards,
-Department of Applied Sciences & Humanities
-PCCOE, Pune`
-        },
-        'exam_schedule': {
-            name: 'SA Exam Schedule',
-            subject: 'Summative Assessment (SA) Examination Schedule - PCCOE',
-            body: `Dear Student,
-
-Please find below the schedule for the upcoming Summative Assessment (SA) Examinations:
-
-**Exam Schedule:**
-- Date: [Date Range]
-- Time: As per seating arrangement
-- Venue: PCCOE Examination Halls
-
-**Important Guidelines:**
-1. Carry your college ID card and hall ticket
-2. Reach the examination center 30 minutes before the exam
-3. Follow all examination rules and regulations
-4. Electronic devices are strictly prohibited
-
-Seating arrangement will be displayed on the notice boards one week before the exams.
-
-For any queries, please contact the examination cell.
-
-PRN: [PRN]
-Student Name: [Student Name]
-
-Best wishes,
-Examination Cell
-PCCOE, Pune`
-        },
-        'parent_meeting': {
-            name: 'Parent-Teacher Meeting',
-            subject: 'Invitation for Parent-Teacher Meeting - PCCOE',
-            body: `Respected Parents,
-
-You are cordially invited to attend the Parent-Teacher Meeting scheduled as per details below:
-
-**Meeting Details:**
-- Date: [Date]
-- Time: [Time]
-- Venue: PCCOE Campus, Department of Applied Sciences & Humanities
-
-**Agenda:**
-1. Discussion of your ward's academic performance
-2. Attendance and behavioral aspects
-3. Future planning and guidance
-4. One-on-one interaction with faculty
-
-Your presence is highly valued and will help us work together for the betterment of your ward's academic journey.
-
-Student Details:
-PRN: [PRN]
-Student Name: [Student Name]
-
-We look forward to your participation.
-
-Warm regards,
-Department of Applied Sciences & Humanities
-PCCOE, Pune`
-        }
-    };
-
-    // Load data from Google Sheets via Apps Script
-    async function loadGoogleSheetsData() {
-        if (!isLoggedIn) return;
-        
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('dataStatus').textContent = 'Loading from Google Sheets...';
-        document.getElementById('noResultsMessage').style.display = 'none';
-        disableExportButtons();
-        
-        try {
-            const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                processGoogleSheetsData(data.students);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('dataStatus').textContent = 'Loaded from Google Sheets';
-                document.getElementById('noResultsMessage').style.display = 'block';
-                enableExportButtons();
-                showCopySuccess('Data loaded successfully from Google Sheets', 'success');
-            } else {
-                throw new Error(data.error || 'Unknown error');
-            }
-            
-        } catch (error) {
-            console.error('Error loading Google Sheets data:', error);
-            document.getElementById('dataStatus').textContent = 'Error Loading';
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('noResultsMessage').style.display = 'block';
-            disableExportButtons();
-            
-            showCopySuccess('Could not load from Google Sheets. Please check your Apps Script URL.', 'error');
-            
-            // Try to load from CSV as fallback
-            setTimeout(() => {
-                loadCSVFallback();
-            }, 2000);
-        }
-    }
-
-    // Fallback to CSV if Apps Script fails
-    async function loadCSVFallback() {
-        try {
-            const csvUrl = 'https://raw.githubusercontent.com/dineshkute90/pccoe_fy_contact_details/main/contact_testing_csv.csv';
-            const response = await fetch(csvUrl);
-            
-            if (!response.ok) throw new Error('CSV fetch failed');
-            
-            const csvText = await response.text();
-            
-            // Dynamically load PapaParse if needed
-            if (typeof Papa === 'undefined') {
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js';
-                script.onload = function() {
-                    parseCSV(csvText);
-                };
-                document.head.appendChild(script);
-            } else {
-                parseCSV(csvText);
-            }
-        } catch (error) {
-            console.error('Fallback CSV also failed:', error);
-            showCopySuccess('Both Google Sheets and CSV failed to load. Please check your connection.', 'error');
-        }
-    }
-
-    function parseCSV(csvText) {
-        Papa.parse(csvText, {
-            header: true,
-            skipEmptyLines: true,
-            complete: function(results) {
-                processCSVData(results.data);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('dataStatus').textContent = 'Loaded from CSV (Fallback)';
-                enableExportButtons();
-            },
-            error: function(error) {
-                console.error('CSV parsing error:', error);
-                showCopySuccess('Error parsing CSV file', 'error');
-            }
-        });
-    }
-
-    // Process Google Sheets data
-    function processGoogleSheetsData(students) {
-        allStudents = students.map((student, index) => {
-            return {
-                sr_no: student.sr_no || student['Sr. No.'] || index + 1,
-                offering_year: student.offering_year || student['Offering Year'] || '2022-2025',
-                prn: student.prn || student.PRN || '',
-                name: student.name || student['Student Name'] || '',
-                student_mobile: student.student_mobile || student['Student Mobile Number'] || student['Student Mobile'] || '',
-                parent_mobile: student.parent_mobile || student['Parent Mobile Number'] || student['Parent Mobile'] || '',
-                email: student.email || student['Student Email ID'] || student.Email || ''
-            };
-        });
-        
-        console.log('Processed students from Google Sheets:', allStudents.length);
-        
-        // Initialize DataTable with the data
-        initDataTable(allStudents);
-        
-        // Update statistics
-        updateTotalCount();
-        updateExportCount();
-        enableExportButtons();
-    }
-
-    // Process CSV data (for fallback)
-    function processCSVData(data) {
-        allStudents = [];
-        
-        data.forEach((row, index) => {
-            const student = {
-                sr_no: row['Sr. No.'] || row['sr_no'] || row['Sr No'] || index + 1,
-                offering_year: row['Offering Year'] || row['offering_year'] || row['Offering_Year'] || '2022-2025',
-                prn: row['PRN'] || row['prn'] || row['PRN Number'] || '',
-                name: row['Student Name'] || row['name'] || row['Student_Name'] || row['Name'] || '',
-                student_mobile: row['Student Mobile Number'] || row['student_mobile'] || row['Student Mobile'] || row['Student_Mobile'] || row['Mobile'] || '',
-                parent_mobile: row['Parent Mobile Number'] || row['parent_mobile'] || row['Parent Mobile'] || row['Parent_Mobile'] || row['Parent Phone'] || '',
-                email: row['Student Email ID'] || row['email'] || row['Student Email'] || row['Student_Email'] || row['Email'] || ''
-            };
-            
-            if (student.prn || student.name) {
-                allStudents.push(student);
-            }
-        });
-        
-        console.log('Processed students from CSV:', allStudents.length);
-        
-        initDataTable(allStudents);
-        updateTotalCount();
-        updateExportCount();
-        enableExportButtons();
-    }
-
-    // Save data via Apps Script
-    async function saveToGoogleSheets(students) {
-        if (!isAdmin) return false;
-        
-        try {
-            const response = await fetch(APP_SCRIPT_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'saveStudents',
-                    students: students
-                })
-            });
-            
-            const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error saving to Google Sheets:', error);
-            return false;
-        }
-    }
-
-    // Add student via Apps Script
-    async function addStudentToGoogleSheets(newStudent) {
-        if (!isAdmin) return false;
-        
-        try {
-            const response = await fetch(APP_SCRIPT_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'addStudent',
-                    student: newStudent
-                })
-            });
-            
-            const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error adding student:', error);
-            return false;
-        }
-    }
-
-    // Update student via Apps Script
-    async function updateStudentInGoogleSheets(updatedStudent, index) {
-        if (!isAdmin) return false;
-        
-        try {
-            const response = await fetch(APP_SCRIPT_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'updateStudent',
-                    student: updatedStudent,
-                    index: index
-                })
-            });
-            
-            const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error updating student:', error);
-            return false;
-        }
-    }
-
-    // Delete student via Apps Script
-    async function deleteStudentFromGoogleSheets(index) {
-        if (!isAdmin) return false;
-        
-        try {
-            const response = await fetch(APP_SCRIPT_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'deleteStudent',
-                    index: index
-                })
-            });
-            
-            const data = await response.json();
-            return data.success;
-        } catch (error) {
-            console.error('Error deleting student:', error);
-            return false;
-        }
-    }
-
-    // Check if user is already logged in
-    function checkLoginStatus() {
-        const savedLogin = localStorage.getItem('pccoeLogin');
-        if (savedLogin) {
-            const loginData = JSON.parse(savedLogin);
-            if (loginData.loggedIn && loginData.expiry > Date.now()) {
-                isLoggedIn = true;
-                isAdmin = loginData.isAdmin || false;
-                showMainApp();
-            }
-        }
-    }
-
-    // Handle login
-    function handleLogin(event) {
-        event.preventDefault();
-        
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const rememberMe = document.getElementById('rememberMe').checked;
-        const loginError = document.getElementById('loginError');
-        
-        // Clear previous error
-        loginError.style.display = 'none';
-        
-        // Validate credentials
-        if (VALID_CREDENTIALS[username] && VALID_CREDENTIALS[username] === password) {
-            isLoggedIn = true;
-            isAdmin = (username === 'admin');
-            
-            // Save login if "Remember me" is checked
-            if (rememberMe) {
-                const loginData = {
-                    loggedIn: true,
-                    isAdmin: isAdmin,
-                    expiry: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
-                };
-                localStorage.setItem('pccoeLogin', JSON.stringify(loginData));
-            } else {
-                // Session only
-                sessionStorage.setItem('pccoeSession', JSON.stringify({ loggedIn: true, isAdmin: isAdmin }));
-            }
-            
-            showMainApp();
-        } else {
-            loginError.style.display = 'block';
-            document.getElementById('password').value = '';
-        }
-    }
-
-    // Logout function
-    function logout() {
-        isLoggedIn = false;
-        isAdmin = false;
-        localStorage.removeItem('pccoeLogin');
-        sessionStorage.removeItem('pccoeSession');
-        showLogin();
-    }
-
-    // Show login screen
-    function showLogin() {
-        document.getElementById('loginSection').style.display = 'block';
-        document.getElementById('mainSection').style.display = 'none';
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-        document.getElementById('loginError').style.display = 'none';
-        document.getElementById('username').focus();
-    }
-
-    // Show main application
-    function showMainApp() {
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('mainSection').style.display = 'block';
-        
-        // Set current date
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-        });
-        
-        // Show/hide admin features
-        if (isAdmin) {
-            document.getElementById('adminFeatures').style.display = 'block';
-        } else {
-            document.getElementById('adminFeatures').style.display = 'none';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCCOE Student Directory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        // Hide elements initially
-        document.getElementById('noResultsMessage').style.display = 'block';
-        document.getElementById('searchResultsHeader').style.display = 'none';
-        
-        // Initialize modals
-        editModal = new bootstrap.Modal(document.getElementById('editStudentModal'));
-        addModal = new bootstrap.Modal(document.getElementById('addStudentModal'));
-        
-        // Load data from Google Sheets via Apps Script
-        loadGoogleSheetsData();
-    }
-
-    // Initialize DataTable (keep this function mostly the same)
-    function initDataTable(data) {
-        if (dataTable) {
-            dataTable.destroy();
-            $('#studentTable').empty();
-        }
-
-        // Show/hide action column based on admin status
-        const actionColumn = isAdmin ? {
-            data: null,
-            render: function(data, type, row, meta) {
-                return `
-                    <button class="edit-btn" onclick="editStudent(${meta.row})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="delete-btn" onclick="deleteStudent(${meta.row})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
-            }
-        } : null;
-
-        const columns = [
-            { 
-                data: null,
-                render: function(data, type, row, meta) {
-                    return meta.row + 1;
-                }
-            },
-            { 
-                data: 'offering_year',
-                render: function(data) {
-                    return data || '2022-2025';
-                }
-            },
-            { 
-                data: 'prn',
-                render: function(data) {
-                    return `<span class="badge-prn">${data}</span>`;
-                }
-            },
-            { data: 'name' },
-            { 
-                data: 'student_mobile',
-                render: function(data) {
-                    return `
-                        <div class="mobile-container">
-                            <div class="mobile-text">
-                                <i class="fas fa-phone text-success me-1"></i>${data}
-                            </div>
-                            <button class="copy-icon-btn" onclick="copyToClipboard('${data}', 'Student mobile number')" title="Copy Student Mobile">
-                                <i class="far fa-copy"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            },
-            { 
-                data: 'parent_mobile',
-                render: function(data) {
-                    return `
-                        <div class="mobile-container">
-                            <div class="mobile-text">
-                                <i class="fas fa-user-friends text-primary me-1"></i>${data}
-                            </div>
-                            <button class="copy-icon-btn" onclick="copyToClipboard('${data}', 'Parent mobile number')" title="Copy Parent Mobile">
-                                <i class="far fa-copy"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            },
-            { 
-                data: 'email',
-                render: function(data, type, row, meta) {
-                    const email = data || '';
-                    const studentName = row.name || '';
-                    const prn = row.prn || '';
-                    
-                    return `
-                        <div class="email-container">
-                            <div class="email-text">
-                                <i class="fas fa-envelope text-danger me-1"></i>${email}
-                            </div>
-                            <div class="d-flex gap-1">
-                                <button class="copy-icon-btn" onclick="copyToClipboard('${email}', 'Email address')" title="Copy Email">
-                                    <i class="far fa-copy"></i>
-                                </button>
-                                <button class="send-email-btn" onclick="sendSingleEmail('${email}', '${studentName}', '${prn}')" title="Send Email">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="email-actions">
-                            <button class="btn btn-sm btn-outline-primary" onclick="sendTemplateEmail('${email}', '${studentName}', '${prn}', 'defaulter')">
-                                Defaulter
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="sendTemplateEmail('${email}', '${studentName}', '${prn}', 'exam_performance')">
-                                Exam
-                            </button>
-                            <button class="btn btn-sm btn-outline-info" onclick="sendTemplateEmail('${email}', '${studentName}', '${prn}', 'attendance')">
-                                Attendance
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-        ];
-
-        // Add action column for admin
-        if (actionColumn) {
-            columns.push(actionColumn);
-            document.getElementById('actionColumnHeader').style.display = '';
-        } else {
-            document.getElementById('actionColumnHeader').style.display = 'none';
-        }
-
-        dataTable = $('#studentTable').DataTable({
-            data: data,
-            columns: columns,
-            pageLength: 10,
-            lengthMenu: [], // Empty array to hide the "Show entries" dropdown
-            language: {
-                search: "Search in results:",
-                info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                infoEmpty: "No entries found",
-                infoFiltered: "(filtered from _MAX_ total entries)"
-            },
-            drawCallback: function() {
-                // Update export count after each draw
-                updateExportCount();
-                updateCurrentSearchResults();
-            }
-        });
-
-        // Update statistics
-        updateTotalCount();
-        updateExportCount();
-    }
-
-    // Keep all your existing search, export, and email functions unchanged
-    // ... (All your existing searchTable, searchMultiplePRNs, clearSearch, exportSearchResults, email functions remain exactly the same) ...
-
-    // Add new student (updated for Apps Script)
-    async function addNewStudent() {
-        if (!isAdmin) {
-            showCopySuccess('Admin access required', 'error');
-            return;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
         
-        const prn = document.getElementById('addPRN').value.trim();
-        const name = document.getElementById('addName').value.trim();
-        const offeringYear = document.getElementById('addOfferingYear').value.trim() || '2025-26';
-        const studentMobile = document.getElementById('addStudentMobile').value.trim();
-        const parentMobile = document.getElementById('addParentMobile').value.trim() || 'NA';
-        const email = document.getElementById('addEmail').value.trim();
-        
-        // Validation
-        if (!prn || !name || !studentMobile || !email) {
-            showCopySuccess('Please fill all required fields (PRN, Name, Mobile, Email)', 'error');
-            return;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
-        // Check if PRN already exists
-        if (allStudents.some(student => student.prn === prn)) {
-            showCopySuccess(`PRN ${prn} already exists. Please use a different PRN.`, 'error');
-            return;
-        }
-        
-        // Create new student object
-        const newStudent = {
-            sr_no: allStudents.length + 1,
-            offering_year: offeringYear,
-            prn: prn,
-            name: name,
-            student_mobile: studentMobile,
-            parent_mobile: parentMobile,
-            email: email
-        };
-        
-        // Add to array
-        allStudents.push(newStudent);
-        
-        // Update DataTable
-        dataTable.row.add(newStudent).draw();
-        
-        // Update statistics
-        updateTotalCount();
-        
-        // Save to Google Sheets via Apps Script
-        if (APP_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-            const success = await addStudentToGoogleSheets(newStudent);
-            if (success) {
-                showCopySuccess(`Student ${name} (${prn}) added to Google Sheets`, 'success');
-            } else {
-                showCopySuccess(`Student ${name} (${prn}) added locally only. Sync with Google Sheets failed.`, 'warning');
-            }
-        } else {
-            showCopySuccess(`Student ${name} (${prn}) added locally. Configure Apps Script URL to sync with Google Sheets.`, 'warning');
-        }
-        
-        // Close modal
-        addModal.hide();
-    }
-
-    // Save student changes (updated for Apps Script)
-    async function saveStudentChanges() {
-        if (!isAdmin) {
-            showCopySuccess('Admin access required', 'error');
-            return;
-        }
-        
-        const index = parseInt(document.getElementById('editStudentIndex').value);
-        const student = allStudents[index];
-        
-        // Get updated values
-        const updatedStudent = {
-            sr_no: student.sr_no,
-            offering_year: document.getElementById('editOfferingYear').value.trim() || '2025-26',
-            prn: document.getElementById('editPRN').value.trim(),
-            name: document.getElementById('editName').value.trim(),
-            student_mobile: document.getElementById('editStudentMobile').value.trim(),
-            parent_mobile: document.getElementById('editParentMobile').value.trim() || 'NA',
-            email: document.getElementById('editEmail').value.trim()
-        };
-        
-        // Validation
-        if (!updatedStudent.prn || !updatedStudent.name || !updatedStudent.student_mobile || !updatedStudent.email) {
-            showCopySuccess('Please fill all required fields (PRN, Name, Mobile, Email)', 'error');
-            return;
-        }
-        
-        // Update in array
-        allStudents[index] = updatedStudent;
-        
-        // Update DataTable
-        dataTable.row(index).data(updatedStudent).draw();
-        
-        // Save to Google Sheets via Apps Script
-        if (APP_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-            const success = await updateStudentInGoogleSheets(updatedStudent, index);
-            if (success) {
-                showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated in Google Sheets`, 'success');
-            } else {
-                showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally only. Sync with Google Sheets failed.`, 'warning');
-            }
-        } else {
-            showCopySuccess(`Student ${updatedStudent.name} (${updatedStudent.prn}) updated locally. Configure Apps Script URL to sync with Google Sheets.`, 'warning');
-        }
-        
-        // Close modal
-        editModal.hide();
-    }
-
-    // Delete student (updated for Apps Script)
-    async function deleteStudent(index) {
-        if (!isAdmin) {
-            showCopySuccess('Admin access required', 'error');
-            return;
-        }
-        
-        const student = allStudents[index];
-        
-        if (confirm(`Are you sure you want to delete student ${student.name} (${student.prn})?`)) {
-            // Remove from array
-            allStudents.splice(index, 1);
-            
-            // Update DataTable
-            dataTable.row(index).remove().draw();
-            
-            // Update statistics
-            updateTotalCount();
-            
-            // Delete from Google Sheets via Apps Script
-            if (APP_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-                const success = await deleteStudentFromGoogleSheets(index);
-                if (success) {
-                    showCopySuccess(`Student ${student.name} (${student.prn}) deleted from Google Sheets`, 'success');
-                } else {
-                    showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally only. Sync with Google Sheets failed.`, 'warning');
-                }
-            } else {
-                showCopySuccess(`Student ${student.name} (${student.prn}) deleted locally. Configure Apps Script URL to sync with Google Sheets.`, 'warning');
-            }
-        }
-    }
-
-    // Update the Reload Data button function
-    function loadCSVData() {
-        loadGoogleSheetsData();
-    }
-
-    // Show copy success message (unchanged)
-    function showCopySuccess(message, type = 'success') {
-        const bgColor = type === 'error' ? '#dc3545' : '#28a745';
-        
-        // Create a temporary notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${bgColor};
+        .header {
+            text-align: center;
             color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 10000;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            animation: fadeInOut 2s ease-in-out;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .search-input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input-group input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .search-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .results-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .results-count {
+            font-size: 1.2rem;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 50px 20px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .student-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            color: #333;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .student-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .student-table tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .prn-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .contact-info {
             display: flex;
             align-items: center;
             gap: 10px;
-            max-width: 300px;
-        `;
-        
-        // Add CSS for animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeInOut {
-                0% { opacity: 0; transform: translateY(-20px); }
-                10% { opacity: 1; transform: translateY(0); }
-                90% { opacity: 1; transform: translateY(0); }
-                100% { opacity: 0; transform: translateY(-20px); }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        notification.innerHTML = `
-            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
-            <span>${message}</span>
-        `;
-        document.body.appendChild(notification);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-            if (notification.parentNode) {
-                document.body.removeChild(notification);
-            }
-            if (style.parentNode) {
-                document.head.removeChild(style);
-            }
-        }, 2000);
-    }
-
-    // Initialize on page load
-    $(document).ready(function() {
-        // Setup login form
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        
-        // Check if user is already logged in
-        checkLoginStatus();
-        
-        if (!isLoggedIn) {
-            showLogin();
         }
         
-        // Add enter key support for search
-        $(document).on('keypress', '#searchPRN, #searchName, #multiPRNSearch', function(e) {
-            if (e.which === 13 && isLoggedIn) {
-                if ($(this).attr('id') === 'multiPRNSearch') {
-                    searchMultiplePRNs();
-                } else {
-                    searchTable();
+        .contact-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .phone-icon {
+            background: #4caf50;
+        }
+        
+        .email-icon {
+            background: #ff9800;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .search-input-group {
+                flex-direction: column;
+            }
+            
+            .student-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PCCOE Student Directory</h1>
+            <p>Search for students by name, PRN, mobile number, or email</p>
+        </div>
+        
+        <div class="search-box">
+            <div class="search-input-group">
+                <input type="text" id="searchInput" placeholder="Search by name, PRN, mobile, or email...">
+                <button class="search-btn" onclick="searchStudents()">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+            <div style="text-align: center;">
+                <small style="color: #666;">Example: Search for "SHREYA" or "125B1G006" or "9130311378"</small>
+            </div>
+        </div>
+        
+        <div class="results-section">
+            <div class="results-header">
+                <div class="results-count" id="resultsCount">0 students found</div>
+            </div>
+            
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading student data...</p>
+            </div>
+            
+            <div id="noResults" class="no-results" style="display: none;">
+                <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
+                <p>No students found. Try a different search term.</p>
+            </div>
+            
+            <table class="student-table" id="studentTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Sr. No.</th>
+                        <th>Year</th>
+                        <th>PRN</th>
+                        <th>Student Name</th>
+                        <th>Mobile</th>
+                        <th>Parent Mobile</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    <!-- Student data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Google Sheets API Configuration
+        const GOOGLE_SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE'; // Replace with your Google Sheet ID
+        const API_KEY = 'YOUR_GOOGLE_API_KEY_HERE'; // Replace with your Google API Key
+        const SHEET_NAME = 'Sheet1'; // Change if your sheet has a different name
+        
+        let allStudents = [];
+        
+        // Function to load data from Google Sheet
+        async function loadGoogleSheetData() {
+            try {
+                // Hide results table initially
+                document.getElementById('studentTable').style.display = 'none';
+                document.getElementById('noResults').style.display = 'none';
+                document.getElementById('loading').style.display = 'block';
+                
+                // Google Sheets API URL
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Process the data
+                allStudents = processSheetData(data.values);
+                
+                // Display all students initially
+                displayStudents(allStudents);
+                
+                // Hide loading spinner
+                document.getElementById('loading').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = `
+                    <p style="color: #dc3545;">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        Error loading data: ${error.message}
+                    </p>
+                    <p style="margin-top: 15px; font-size: 0.9rem;">
+                        Make sure you've set up the Google Sheet ID and API Key correctly.
+                    </p>
+                `;
+            }
+        }
+        
+        // Process Google Sheets data
+        function processSheetData(rows) {
+            if (!rows || rows.length < 2) {
+                return [];
+            }
+            
+            const students = [];
+            const headers = rows[0]; // First row contains headers
+            
+            // Find column indices
+            const colIndices = {
+                srNo: headers.indexOf('Sr. No.'),
+                year: headers.indexOf('Offering Year'),
+                prn: headers.indexOf('PRN'),
+                name: headers.indexOf('Student Name'),
+                mobile: headers.indexOf('Student Mobile'),
+                parentMobile: headers.indexOf('Parent Mobile'),
+                email: headers.indexOf('Email ID')
+            };
+            
+            // Process each row starting from index 1
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                
+                const student = {
+                    srNo: row[colIndices.srNo] || '',
+                    year: row[colIndices.year] || '2025-26',
+                    prn: row[colIndices.prn] || '',
+                    name: row[colIndices.name] || '',
+                    mobile: row[colIndices.mobile] || '',
+                    parentMobile: row[colIndices.parentMobile] || '',
+                    email: row[colIndices.email] || ''
+                };
+                
+                if (student.prn || student.name) {
+                    students.push(student);
                 }
             }
-        });
+            
+            return students;
+        }
         
-        // Auto-search after typing
-        let searchTimer;
-        $(document).on('keyup', '#searchPRN, #searchName', function() {
-            if (isLoggedIn) {
-                clearTimeout(searchTimer);
-                searchTimer = setTimeout(searchTable, 300);
+        // Display students in table
+        function displayStudents(students) {
+            const tableBody = document.getElementById('studentTableBody');
+            tableBody.innerHTML = '';
+            
+            if (students.length === 0) {
+                document.getElementById('studentTable').style.display = 'none';
+                document.getElementById('noResults').style.display = 'block';
+                document.getElementById('resultsCount').textContent = '0 students found';
+                return;
+            }
+            
+            students.forEach(student => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${student.srNo}</td>
+                    <td>${student.year}</td>
+                    <td><span class="prn-badge">${student.prn}</span></td>
+                    <td>${student.name}</td>
+                    <td>
+                        <div class="contact-info">
+                            <div class="contact-icon phone-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <span>${student.mobile}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="contact-info">
+                            <div class="contact-icon phone-icon">
+                                <i class="fas fa-user-friends"></i>
+                            </div>
+                            <span>${student.parentMobile || student.mobile}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="contact-info">
+                            <div class="contact-icon email-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <span>${student.email}</span>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById('studentTable').style.display = 'table';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('resultsCount').textContent = `${students.length} student${students.length !== 1 ? 's' : ''} found`;
+        }
+        
+        // Search function
+        function searchStudents() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                displayStudents(allStudents);
+                return;
+            }
+            
+            const filteredStudents = allStudents.filter(student => {
+                return (
+                    (student.name && student.name.toLowerCase().includes(searchTerm)) ||
+                    (student.prn && student.prn.toLowerCase().includes(searchTerm)) ||
+                    (student.mobile && student.mobile.includes(searchTerm)) ||
+                    (student.parentMobile && student.parentMobile.includes(searchTerm)) ||
+                    (student.email && student.email.toLowerCase().includes(searchTerm))
+                );
+            });
+            
+            displayStudents(filteredStudents);
+        }
+        
+        // Enter key to search
+        document.getElementById('searchInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchStudents();
             }
         });
         
-        // Auto-search for multi-PRN
-        let multiPRNTimer;
-        $(document).on('keyup', '#multiPRNSearch', function() {
-            if (isLoggedIn) {
-                clearTimeout(multiPRNTimer);
-                multiPRNTimer = setTimeout(function() {
-                    const input = document.getElementById('multiPRNSearch').value.trim();
-                    if (input) {
-                        searchMultiplePRNs();
-                    }
-                }, 500);
-            }
+        // Auto-search while typing (with delay)
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(searchStudents, 300);
         });
         
-        // Handle paste event for Excel data
-        document.getElementById('multiPRNSearch').addEventListener('paste', function(e) {
-            // Let the paste happen first
-            setTimeout(() => {
-                // Auto-trigger search after paste
-                if (this.value.trim()) {
-                    searchMultiplePRNs();
-                }
-            }, 100);
+        // Load data when page loads
+        window.onload = loadGoogleSheetData;
+    </script>
+
+    <script>
+        // Instructions for setting up Google Sheets API
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if API keys are not set
+            if (GOOGLE_SHEET_ID === 'YOUR_GOOGLE_SHEET_ID_HERE') {
+                const loadingDiv = document.getElementById('loading');
+                loadingDiv.innerHTML = `
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 20px; text-align: left;">
+                        <h3 style="color: #856404; margin-bottom: 15px;">
+                            <i class="fas fa-exclamation-triangle"></i> Setup Required
+                        </h3>
+                        <p style="margin-bottom: 10px; color: #856404;">
+                            <strong>To use this student directory, follow these steps:</strong>
+                        </p>
+                        <ol style="margin-left: 20px; color: #856404;">
+                            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                            <li>Create a new project or select existing one</li>
+                            <li>Enable Google Sheets API</li>
+                            <li>Create API Credentials (API Key)</li>
+                            <li>Share your Google Sheet with the API service account</li>
+                            <li>Copy your Google Sheet ID from the URL</li>
+                            <li>Update the JavaScript code with your Sheet ID and API Key</li>
+                        </ol>
+                        <p style="margin-top: 15px; color: #856404;">
+                            <strong>Google Sheet ID:</strong> Found in your spreadsheet URL<br>
+                            Example: <code>https://docs.google.com/spreadsheets/d/[YOUR_SHEET_ID]/edit</code>
+                        </p>
+                    </div>
+                `;
+            }
         });
-    });
-</script>
+    </script>
+</body>
+</html>
