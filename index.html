@@ -9,7 +9,7 @@
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             padding: 20px;
@@ -32,6 +32,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 10px;
+            align-items: center;
         }
         #searchInput {
             flex: 1;
@@ -79,6 +80,8 @@
             color: white;
             padding: 12px;
             text-align: left;
+            position: sticky;
+            top: 0;
         }
         .student-table td {
             padding: 12px;
@@ -119,6 +122,96 @@
         .email-link:hover {
             text-decoration: underline;
         }
+        .action-buttons {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .send-email-btn {
+            background: #4285F4;
+            color: white;
+        }
+        .send-email-btn:hover {
+            background: #3367D6;
+        }
+        .select-all-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .select-all-btn:hover {
+            background: #e0e0e0;
+        }
+        .clear-search-btn {
+            background: #ff9800;
+            color: white;
+        }
+        .clear-search-btn:hover {
+            background: #e68900;
+        }
+        .prn-multi-input {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-top: 10px;
+            resize: vertical;
+            display: none;
+        }
+        .multi-search-toggle {
+            background: #9C27B0;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .multi-search-toggle:hover {
+            background: #7B1FA2;
+        }
+        .instructions {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+        .selected-count {
+            background: #4285F4;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .prn-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -131,11 +224,25 @@
         <div class="search-container">
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Enter name, PRN, mobile or email to search...">
+                <button class="multi-search-toggle" onclick="toggleMultiPRNInput()">Multi-PRN Search</button>
                 <button class="search-btn" onclick="searchStudents()">Search</button>
             </div>
-            <p style="text-align: center; color: #666; margin: 0;">
+            
+            <textarea id="multiPRNInput" class="prn-multi-input" placeholder="Enter multiple PRNs (one per line or comma-separated)"></textarea>
+            
+            <div class="instructions" id="multiPRNInstructions" style="display: none;">
+                Enter PRNs separated by commas or new lines. Example: 123456789012, 123456789013, 123456789014
+            </div>
+            
+            <p style="text-align: center; color: #666; margin: 10px 0 0 0;">
                 Press Enter to search or leave empty to show all students
             </p>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn select-all-btn" onclick="toggleSelectAll()">Select All <span id="selectedCount" class="selected-count">0</span></button>
+            <button class="action-btn send-email-btn" onclick="sendEmailsToSelected()">Send Email to Selected</button>
+            <button class="action-btn clear-search-btn" onclick="clearSearch()">Clear Search</button>
         </div>
         
         <div class="stats">
@@ -163,20 +270,25 @@
             <p>Try a different search term</p>
         </div>
         
-        <table class="student-table" id="studentTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>SR. NO.</th>
-                    <th>YEAR</th>
-                    <th>PRN</th>
-                    <th>STUDENT NAME</th>
-                    <th>STUDENT MOBILE</th>
-                    <th>PARENT MOBILE</th>
-                    <th>EMAIL</th>
-                </tr>
-            </thead>
-            <tbody id="studentTableBody"></tbody>
-        </table>
+        <div class="table-container">
+            <table class="student-table" id="studentTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                        </th>
+                        <th>SR. NO.</th>
+                        <th>YEAR</th>
+                        <th>PRN</th>
+                        <th>STUDENT NAME</th>
+                        <th>STUDENT MOBILE</th>
+                        <th>PARENT MOBILE</th>
+                        <th>EMAIL</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -184,6 +296,8 @@
         const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz95lLcZPbBzRJHsbcWUgxdxeH-dSijKeoUxUzcAI3iyNiNce_7TUGNIMo1uWs50xhE1g/exec';
         
         let allStudents = [];
+        let displayedStudents = [];
+        let selectedStudents = new Set();
         
         // Load data on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -205,7 +319,43 @@
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(searchStudents, 500);
             });
+            
+            // Setup multi PRN input
+            const multiPRNInput = document.getElementById('multiPRNInput');
+            multiPRNInput.addEventListener('input', function() {
+                if (multiPRNInput.style.display !== 'none') {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(searchStudents, 500);
+                }
+            });
         });
+        
+        // Toggle multi PRN input
+        function toggleMultiPRNInput() {
+            const multiInput = document.getElementById('multiPRNInput');
+            const instructions = document.getElementById('multiPRNInstructions');
+            const singleInput = document.getElementById('searchInput');
+            const toggleBtn = document.querySelector('.multi-search-toggle');
+            
+            if (multiInput.style.display === 'none' || multiInput.style.display === '') {
+                multiInput.style.display = 'block';
+                instructions.style.display = 'block';
+                singleInput.placeholder = "Enter name, mobile or email...";
+                toggleBtn.textContent = 'Single Search';
+                toggleBtn.style.background = '#4CAF50';
+            } else {
+                multiInput.style.display = 'none';
+                instructions.style.display = 'none';
+                singleInput.placeholder = "Enter name, PRN, mobile or email to search...";
+                toggleBtn.textContent = 'Multi-PRN Search';
+                toggleBtn.style.background = '#9C27B0';
+            }
+            
+            // Clear both inputs
+            singleInput.value = '';
+            multiInput.value = '';
+            searchStudents();
+        }
         
         // Load data from Google Sheets
         async function loadData() {
@@ -226,6 +376,11 @@
                     allStudents = data.students || [];
                     console.log(`Loaded ${allStudents.length} students`);
                     
+                    // Add unique ID to each student for checkbox tracking
+                    allStudents.forEach((student, index) => {
+                        student._id = index;
+                    });
+                    
                     // Display all students initially
                     displayStudents(allStudents);
                     updateStats();
@@ -242,6 +397,7 @@
         
         // Display students in table
         function displayStudents(students) {
+            displayedStudents = students;
             const tableBody = document.getElementById('studentTableBody');
             tableBody.innerHTML = '';
             
@@ -249,11 +405,13 @@
                 document.getElementById('studentTable').style.display = 'none';
                 document.getElementById('noResults').style.display = 'block';
                 document.getElementById('shownCount').textContent = '0';
+                updateSelectedCount();
                 return;
             }
             
             students.forEach(student => {
                 const row = document.createElement('tr');
+                const isChecked = selectedStudents.has(student._id);
                 
                 // Get data with fallbacks
                 const srNo = student['Sr. No.'] || student.sr_no || '';
@@ -265,6 +423,9 @@
                 const email = student['Email ID'] || student.email || '';
                 
                 row.innerHTML = `
+                    <td class="checkbox-cell">
+                        <input type="checkbox" data-id="${student._id}" ${isChecked ? 'checked' : ''} onchange="toggleStudentSelection(${student._id})">
+                    </td>
                     <td>${srNo}</td>
                     <td>${year}</td>
                     <td><strong>${prn}</strong></td>
@@ -289,12 +450,39 @@
             document.getElementById('studentTable').style.display = 'table';
             document.getElementById('noResults').style.display = 'none';
             document.getElementById('shownCount').textContent = students.length;
+            updateSelectAllCheckbox();
+            updateSelectedCount();
         }
         
         // Search function
         function searchStudents() {
             const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            const multiPRNInput = document.getElementById('multiPRNInput');
             
+            // Check if multi-PRN search is active
+            if (multiPRNInput.style.display !== 'none' && multiPRNInput.value.trim()) {
+                const prnInput = multiPRNInput.value.trim();
+                // Split by commas, new lines, or spaces
+                const prnList = prnInput.split(/[\n,]+/).map(prn => prn.trim()).filter(prn => prn);
+                
+                if (prnList.length > 0) {
+                    const filteredStudents = allStudents.filter(student => {
+                        const prn = (student.PRN || student.prn || '').toLowerCase();
+                        return prnList.some(searchPRN => prn.includes(searchPRN.toLowerCase()));
+                    });
+                    
+                    displayStudents(filteredStudents);
+                    document.getElementById('searchCount').textContent = filteredStudents.length;
+                    
+                    // Show PRN badges for search
+                    const searchInput = document.getElementById('searchInput');
+                    searchInput.value = prnList.join(', ');
+                    
+                    return;
+                }
+            }
+            
+            // Regular search
             if (!searchTerm) {
                 // Show all students if search is empty
                 displayStudents(allStudents);
@@ -320,6 +508,120 @@
             
             displayStudents(filteredStudents);
             document.getElementById('searchCount').textContent = filteredStudents.length;
+        }
+        
+        // Toggle student selection
+        function toggleStudentSelection(studentId) {
+            if (selectedStudents.has(studentId)) {
+                selectedStudents.delete(studentId);
+            } else {
+                selectedStudents.add(studentId);
+            }
+            updateSelectedCount();
+            updateSelectAllCheckbox();
+        }
+        
+        // Toggle select all
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('#studentTableBody input[type="checkbox"]');
+            
+            if (selectAllCheckbox.checked) {
+                // Select all displayed students
+                displayedStudents.forEach(student => {
+                    selectedStudents.add(student._id);
+                });
+                checkboxes.forEach(cb => cb.checked = true);
+            } else {
+                // Deselect all
+                checkboxes.forEach(cb => {
+                    const studentId = parseInt(cb.getAttribute('data-id'));
+                    selectedStudents.delete(studentId);
+                    cb.checked = false;
+                });
+            }
+            
+            updateSelectedCount();
+        }
+        
+        // Update select all checkbox state
+        function updateSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('#studentTableBody input[type="checkbox"]');
+            
+            if (checkboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+                return;
+            }
+            
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            
+            if (checkedCount === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedCount === checkboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+        
+        // Update selected count display
+        function updateSelectedCount() {
+            const selectedCountElement = document.getElementById('selectedCount');
+            selectedCountElement.textContent = selectedStudents.size;
+        }
+        
+        // Send emails to selected students
+        function sendEmailsToSelected() {
+            if (selectedStudents.size === 0) {
+                alert('Please select at least one student to send email.');
+                return;
+            }
+            
+            // Get selected students' emails
+            const selectedEmails = [];
+            allStudents.forEach(student => {
+                if (selectedStudents.has(student._id)) {
+                    const email = student['Email ID'] || student.email || '';
+                    if (email) {
+                        selectedEmails.push(email);
+                    }
+                }
+            });
+            
+            if (selectedEmails.length === 0) {
+                alert('No valid email addresses found for selected students.');
+                return;
+            }
+            
+            // Create Gmail URL with recipients
+            const emailString = selectedEmails.join(',');
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailString)}`;
+            
+            // Open Gmail in new tab
+            window.open(gmailUrl, '_blank');
+            
+            // Show confirmation
+            alert(`Opening Gmail with ${selectedEmails.length} recipient(s)`);
+        }
+        
+        // Clear search
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('multiPRNInput').value = '';
+            selectedStudents.clear();
+            displayStudents(allStudents);
+            document.getElementById('searchCount').textContent = '0';
+            
+            // Reset multi-PRN input if visible
+            const multiInput = document.getElementById('multiPRNInput');
+            if (multiInput.style.display !== 'none') {
+                toggleMultiPRNInput();
+            }
         }
         
         // Copy to clipboard
