@@ -32,14 +32,17 @@
             display: flex;
             gap: 10px;
             margin-bottom: 10px;
-            align-items: center;
+            align-items: flex-start;
         }
-        #searchInput {
+        .prn-multi-input {
             flex: 1;
+            height: 100px;
             padding: 12px;
             border: 2px solid #ddd;
             border-radius: 5px;
             font-size: 16px;
+            resize: vertical;
+            font-family: monospace;
         }
         .search-btn {
             background: #4CAF50;
@@ -49,6 +52,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
+            height: 48px;
         }
         .search-btn:hover {
             background: #45a049;
@@ -156,28 +160,12 @@
         .clear-search-btn:hover {
             background: #e68900;
         }
-        .prn-multi-input {
-            width: 100%;
-            height: 100px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            margin-top: 10px;
-            resize: vertical;
-            display: none;
-        }
-        .multi-search-toggle {
-            background: #9C27B0;
+        .export-excel-btn {
+            background: #0d904f;
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
         }
-        .multi-search-toggle:hover {
-            background: #7B1FA2;
+        .export-excel-btn:hover {
+            background: #0a703f;
         }
         .instructions {
             font-size: 12px;
@@ -212,36 +200,70 @@
             border-radius: 5px;
             margin-top: 10px;
         }
+        .example-prns {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .example-prns span {
+            cursor: pointer;
+            color: #1976d2;
+            text-decoration: underline;
+            margin-right: 10px;
+        }
+        .example-prns span:hover {
+            color: #0d47a1;
+        }
+        .export-options {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .export-options label {
+            margin-right: 15px;
+            cursor: pointer;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>PCCOE Student Directory</h1>
-            <p>Search student information from Google Sheets</p>
+            <p>Search multiple PRNs and export results to Excel</p>
         </div>
         
         <div class="search-container">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Enter name, PRN, mobile or email to search...">
-                <button class="multi-search-toggle" onclick="toggleMultiPRNInput()">Multi-PRN Search</button>
+                <textarea id="multiPRNInput" class="prn-multi-input" placeholder="Enter multiple PRNs (one per line or comma-separated)"></textarea>
                 <button class="search-btn" onclick="searchStudents()">Search</button>
             </div>
             
-            <textarea id="multiPRNInput" class="prn-multi-input" placeholder="Enter multiple PRNs (one per line or comma-separated)"></textarea>
-            
-            <div class="instructions" id="multiPRNInstructions" style="display: none;">
-                Enter PRNs separated by commas or new lines. Example: 123456789012, 123456789013, 123456789014
+            <div class="instructions">
+                Enter PRNs separated by commas, spaces, or new lines. Example: 123456789012, 123456789013, 123456789014
             </div>
             
-            <p style="text-align: center; color: #666; margin: 10px 0 0 0;">
-                Press Enter to search or leave empty to show all students
-            </p>
+            <div class="example-prns">
+                <strong>Quick examples:</strong>
+                <span onclick="loadExample('batch')">Batch of 5 PRNs</span>
+                <span onclick="loadExample('year')">All 2023 PRNs</span>
+                <span onclick="loadExample('clear')">Clear All</span>
+            </div>
+        </div>
+        
+        <div class="export-options">
+            <strong>Export Options:</strong>
+            <label><input type="radio" name="exportScope" value="displayed" checked> Currently Displayed Results</label>
+            <label><input type="radio" name="exportScope" value="selected"> Only Selected Students</label>
+            <label><input type="radio" name="exportScope" value="all"> All Students</label>
         </div>
         
         <div class="action-buttons">
             <button class="action-btn select-all-btn" onclick="toggleSelectAll()">Select All <span id="selectedCount" class="selected-count">0</span></button>
             <button class="action-btn send-email-btn" onclick="sendEmailsToSelected()">Send Email to Selected</button>
+            <button class="action-btn export-excel-btn" onclick="exportToExcel()">Export to Excel</button>
             <button class="action-btn clear-search-btn" onclick="clearSearch()">Clear Search</button>
         </div>
         
@@ -267,7 +289,7 @@
         
         <div id="noResults" style="text-align: center; padding: 40px; display: none;">
             <h3>No students found</h3>
-            <p>Try a different search term</p>
+            <p>Try entering different PRNs</p>
         </div>
         
         <div class="table-container">
@@ -284,6 +306,8 @@
                         <th>STUDENT MOBILE</th>
                         <th>PARENT MOBILE</th>
                         <th>EMAIL</th>
+                        <th>BRANCH</th>
+                        <th>DIVISION</th>
                     </tr>
                 </thead>
                 <tbody id="studentTableBody"></tbody>
@@ -303,57 +327,50 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             
-            // Setup search input
-            const searchInput = document.getElementById('searchInput');
-            
-            // Search on Enter key
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchStudents();
-                }
-            });
-            
-            // Auto-search while typing
-            let searchTimeout;
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(searchStudents, 500);
-            });
-            
-            // Setup multi PRN input
+            // Setup auto-search for PRN input
             const multiPRNInput = document.getElementById('multiPRNInput');
+            let searchTimeout;
+            
             multiPRNInput.addEventListener('input', function() {
-                if (multiPRNInput.style.display !== 'none') {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(searchStudents, 500);
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(searchStudents, 800);
+            });
+            
+            // Allow Enter key to search (but not create new line)
+            multiPRNInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    searchStudents();
                 }
             });
         });
         
-        // Toggle multi PRN input
-        function toggleMultiPRNInput() {
-            const multiInput = document.getElementById('multiPRNInput');
-            const instructions = document.getElementById('multiPRNInstructions');
-            const singleInput = document.getElementById('searchInput');
-            const toggleBtn = document.querySelector('.multi-search-toggle');
+        // Load example PRNs
+        function loadExample(type) {
+            const input = document.getElementById('multiPRNInput');
             
-            if (multiInput.style.display === 'none' || multiInput.style.display === '') {
-                multiInput.style.display = 'block';
-                instructions.style.display = 'block';
-                singleInput.placeholder = "Enter name, mobile or email...";
-                toggleBtn.textContent = 'Single Search';
-                toggleBtn.style.background = '#4CAF50';
-            } else {
-                multiInput.style.display = 'none';
-                instructions.style.display = 'none';
-                singleInput.placeholder = "Enter name, PRN, mobile or email to search...";
-                toggleBtn.textContent = 'Multi-PRN Search';
-                toggleBtn.style.background = '#9C27B0';
+            if (type === 'clear') {
+                input.value = '';
+                searchStudents();
+                return;
             }
             
-            // Clear both inputs
-            singleInput.value = '';
-            multiInput.value = '';
+            if (type === 'batch') {
+                // Example batch of PRNs
+                input.value = `123456789012
+123456789013
+123456789014
+123456789015
+123456789016`;
+            } else if (type === 'year') {
+                // Example for all 2023 PRNs (you can customize this)
+                input.value = `202312345678
+202312345679
+202312345680
+202312345681
+202312345682`;
+            }
+            
             searchStudents();
         }
         
@@ -379,6 +396,9 @@
                     // Add unique ID to each student for checkbox tracking
                     allStudents.forEach((student, index) => {
                         student._id = index;
+                        // Ensure all fields exist
+                        student.branch = student.branch || student['Branch'] || '';
+                        student.division = student.division || student['Division'] || '';
                     });
                     
                     // Display all students initially
@@ -421,6 +441,8 @@
                 const studentMobile = student['Student Mobile'] || student.student_mobile || '';
                 const parentMobile = student['Parent Mobile'] || student.parent_mobile || '';
                 const email = student['Email ID'] || student.email || '';
+                const branch = student.branch || student['Branch'] || '';
+                const division = student.division || student['Division'] || '';
                 
                 row.innerHTML = `
                     <td class="checkbox-cell">
@@ -442,6 +464,8 @@
                         ${email ? `<a href="mailto:${email}" class="email-link">${email}</a>` : ''}
                         ${email ? `<button class="copy-btn" onclick="copyToClipboard('${email}')">📋</button>` : ''}
                     </td>
+                    <td>${branch}</td>
+                    <td>${division}</td>
                 `;
                 
                 tableBody.appendChild(row);
@@ -454,58 +478,41 @@
             updateSelectedCount();
         }
         
-        // Search function
+        // Search function for multiple PRNs
         function searchStudents() {
-            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
             const multiPRNInput = document.getElementById('multiPRNInput');
+            const prnInput = multiPRNInput.value.trim();
             
-            // Check if multi-PRN search is active
-            if (multiPRNInput.style.display !== 'none' && multiPRNInput.value.trim()) {
-                const prnInput = multiPRNInput.value.trim();
-                // Split by commas, new lines, or spaces
-                const prnList = prnInput.split(/[\n,]+/).map(prn => prn.trim()).filter(prn => prn);
-                
-                if (prnList.length > 0) {
-                    const filteredStudents = allStudents.filter(student => {
-                        const prn = (student.PRN || student.prn || '').toLowerCase();
-                        return prnList.some(searchPRN => prn.includes(searchPRN.toLowerCase()));
-                    });
-                    
-                    displayStudents(filteredStudents);
-                    document.getElementById('searchCount').textContent = filteredStudents.length;
-                    
-                    // Show PRN badges for search
-                    const searchInput = document.getElementById('searchInput');
-                    searchInput.value = prnList.join(', ');
-                    
-                    return;
-                }
-            }
-            
-            // Regular search
-            if (!searchTerm) {
+            if (!prnInput) {
                 // Show all students if search is empty
                 displayStudents(allStudents);
                 document.getElementById('searchCount').textContent = '0';
                 return;
             }
             
+            // Split by commas, new lines, spaces, tabs, or semicolons
+            const prnList = prnInput.split(/[\n,\s\t;]+/)
+                .map(prn => prn.trim())
+                .filter(prn => prn.length > 0);
+            
+            if (prnList.length === 0) {
+                displayStudents(allStudents);
+                document.getElementById('searchCount').textContent = '0';
+                return;
+            }
+            
+            console.log('Searching for PRNs:', prnList);
+            
+            // Filter students based on PRN list
             const filteredStudents = allStudents.filter(student => {
-                // Get all fields to search
-                const name = (student['Student Name'] || student.name || '').toLowerCase();
-                const prn = (student.PRN || student.prn || '').toLowerCase();
-                const studentMobile = (student['Student Mobile'] || student.student_mobile || '').toLowerCase();
-                const parentMobile = (student['Parent Mobile'] || student.parent_mobile || '').toLowerCase();
-                const email = (student['Email ID'] || student.email || '').toLowerCase();
-                
-                // Check if search term is in any field
-                return name.includes(searchTerm) || 
-                       prn.includes(searchTerm) || 
-                       studentMobile.includes(searchTerm) || 
-                       parentMobile.includes(searchTerm) || 
-                       email.includes(searchTerm);
+                const studentPRN = (student.PRN || student.prn || '').toString().trim();
+                return prnList.some(searchPRN => 
+                    studentPRN.includes(searchPRN) || 
+                    studentPRN === searchPRN
+                );
             });
             
+            console.log(`Found ${filteredStudents.length} students`);
             displayStudents(filteredStudents);
             document.getElementById('searchCount').textContent = filteredStudents.length;
         }
@@ -609,19 +616,68 @@
             alert(`Opening Gmail with ${selectedEmails.length} recipient(s)`);
         }
         
+        // Export to Excel function
+        function exportToExcel() {
+            // Determine which data to export based on radio selection
+            const exportScope = document.querySelector('input[name="exportScope"]:checked').value;
+            let studentsToExport = [];
+            
+            if (exportScope === 'displayed') {
+                studentsToExport = displayedStudents;
+            } else if (exportScope === 'selected') {
+                if (selectedStudents.size === 0) {
+                    alert('Please select at least one student to export.');
+                    return;
+                }
+                studentsToExport = allStudents.filter(student => selectedStudents.has(student._id));
+            } else if (exportScope === 'all') {
+                studentsToExport = allStudents;
+            }
+            
+            if (studentsToExport.length === 0) {
+                alert('No data to export.');
+                return;
+            }
+            
+            // Prepare data for Excel
+            const excelData = studentsToExport.map(student => {
+                return {
+                    'Sr. No.': student['Sr. No.'] || student.sr_no || '',
+                    'Year': student['Offering Year'] || student.offering_year || '',
+                    'PRN': student.PRN || student.prn || '',
+                    'Student Name': student['Student Name'] || student.name || '',
+                    'Student Mobile': student['Student Mobile'] || student.student_mobile || '',
+                    'Parent Mobile': student['Parent Mobile'] || student.parent_mobile || '',
+                    'Email': student['Email ID'] || student.email || '',
+                    'Branch': student.branch || student['Branch'] || '',
+                    'Division': student.division || student['Division'] || ''
+                };
+            });
+            
+            // Create worksheet
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+            
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+            const filename = `PCCOE_Students_${timestamp}.xlsx`;
+            
+            // Export to Excel
+            XLSX.writeFile(workbook, filename);
+            
+            // Show success message
+            alert(`Exported ${studentsToExport.length} students to ${filename}`);
+        }
+        
         // Clear search
         function clearSearch() {
-            document.getElementById('searchInput').value = '';
             document.getElementById('multiPRNInput').value = '';
             selectedStudents.clear();
             displayStudents(allStudents);
             document.getElementById('searchCount').textContent = '0';
-            
-            // Reset multi-PRN input if visible
-            const multiInput = document.getElementById('multiPRNInput');
-            if (multiInput.style.display !== 'none') {
-                toggleMultiPRNInput();
-            }
         }
         
         // Copy to clipboard
