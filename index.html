@@ -280,6 +280,33 @@
             transform: none;
         }
         
+        .export-btn {
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .export-btn:hover {
+            background: linear-gradient(135deg, #0d1547 0%, #1a237e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(26, 35, 126, 0.3);
+            color: white;
+        }
+        
+        .export-btn:disabled {
+            background: #6c757d;
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         .email-dropdown {
             position: relative;
             display: inline-block;
@@ -513,6 +540,20 @@
             cursor: pointer;
         }
         
+        .export-options {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .export-option-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a237e;
+        }
+        
         @media (max-width: 768px) {
             .directory-header {
                 flex-direction: column;
@@ -607,6 +648,36 @@
                 </div>
             </div>
             
+            <!-- Export Options -->
+            <div class="export-options">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <p class="export-option-label mb-2">
+                            <i class="fas fa-download"></i> Export Search Results
+                        </p>
+                        <div class="d-flex align-items-center gap-3">
+                            <button class="btn export-btn" onclick="exportSearchResultsToExcel()" id="exportSearchResultsBtn">
+                                <i class="fas fa-file-excel"></i> Export Search Results to Excel
+                                <span id="searchResultsCount" style="background: #4285F4; color: white; padding: 3px 8px; border-radius: 15px; font-size: 12px; margin-left: 10px;">0</span>
+                            </button>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeTimestamp" checked>
+                                <label class="form-check-label" for="includeTimestamp">
+                                    Include timestamp
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> Note: Exports all currently displayed search results
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Action Buttons -->
             <div class="action-buttons">
                 <button class="select-all-btn" onclick="toggleSelectAll()">
@@ -665,7 +736,7 @@
             <div class="col-md-3">
                 <div class="stats-card">
                     <i class="fas fa-check-circle"></i>
-                    <h5 id="exportReady">0</h5>
+                    <h5 id="selectedForEmail">0</h5>
                     <small>Selected for Email</small>
                 </div>
             </div>
@@ -726,6 +797,7 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
         // Apps Script URL
@@ -895,7 +967,8 @@ ASH Department`
                 document.getElementById('studentTable').style.display = 'none';
                 document.getElementById('noResultsMessage').style.display = 'block';
                 document.getElementById('totalStudents').textContent = '0';
-                document.getElementById('exportReady').textContent = '0';
+                document.getElementById('selectedForEmail').textContent = '0';
+                document.getElementById('searchResultsCount').textContent = '0';
                 updateSelectedCount();
                 return;
             }
@@ -982,6 +1055,7 @@ ASH Department`
                 // Show all students if search is empty
                 initDataTable(allStudents);
                 document.getElementById('searchResults').textContent = allStudents.length;
+                document.getElementById('searchResultsCount').textContent = allStudents.length;
                 document.getElementById('prnBadgesContainer').style.display = 'none';
                 return;
             }
@@ -1034,6 +1108,7 @@ ASH Department`
             // Display filtered students
             initDataTable(filteredStudents);
             document.getElementById('searchResults').textContent = filteredStudents.length;
+            document.getElementById('searchResultsCount').textContent = filteredStudents.length;
             
             if (filteredStudents.length > 0) {
                 showNotification(`Found ${filteredStudents.length} student(s) matching ${prnList.length} PRN(s)`, 'success');
@@ -1059,6 +1134,79 @@ ASH Department`
                 .map(prn => prn.trim())
                 .filter(prn => prn.length > 0)
                 .filter((prn, index, self) => self.indexOf(prn) === index); // Remove duplicates
+        }
+        
+        // Export search results to Excel
+        function exportSearchResultsToExcel() {
+            if (displayedStudents.length === 0) {
+                showNotification('No search results to export.', 'error');
+                return;
+            }
+            
+            const includeTimestamp = document.getElementById('includeTimestamp').checked;
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            
+            let fileName = 'PCCOE_Search_Results';
+            
+            if (includeTimestamp) {
+                fileName += `_${timestamp}`;
+            }
+            
+            fileName += '.xlsx';
+            
+            // Prepare worksheet data
+            const worksheetData = [
+                ['PCCOE Student Directory - Department of Applied Sciences & Humanities'],
+                ['Exported on: ' + new Date().toLocaleString('en-IN')],
+                ['Search Results Export'],
+                ['Total Records: ' + displayedStudents.length],
+                [''], // Empty row
+                ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Division']
+            ];
+            
+            // Add student data
+            displayedStudents.forEach((student, index) => {
+                worksheetData.push([
+                    student['Sr. No.'] || student.sr_no || index + 1,
+                    student['Offering Year'] || student.offering_year || '',
+                    student.PRN || student.prn || '',
+                    student['Student Name'] || student.name || '',
+                    student['Student Mobile'] || student.student_mobile || '',
+                    student['Parent Mobile'] || student.parent_mobile || '',
+                    student['Email ID'] || student.email || '',
+                    student.branch || student['Branch'] || '',
+                    student.division || student['Division'] || ''
+                ]);
+            });
+            
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+            
+            // Set column widths
+            const colWidths = [
+                { wch: 8 },   // Sr. No.
+                { wch: 15 },  // Offering Year
+                { wch: 12 },  // PRN
+                { wch: 25 },  // Student Name
+                { wch: 15 },  // Student Mobile
+                { wch: 15 },  // Parent Mobile
+                { wch: 30 },  // Email ID
+                { wch: 15 },  // Branch
+                { wch: 10 }   // Division
+            ];
+            worksheet['!cols'] = colWidths;
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Search Results');
+            
+            try {
+                XLSX.writeFile(workbook, fileName);
+                showNotification(`Exported ${displayedStudents.length} search results to ${fileName}`, 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Error exporting file. Please try again.', 'error');
+            }
         }
         
         // Toggle student selection
@@ -1124,7 +1272,7 @@ ASH Department`
         function updateSelectedCount() {
             const selectedCount = selectedStudents.size;
             document.getElementById('selectedCount').textContent = selectedCount;
-            document.getElementById('exportReady').textContent = selectedCount;
+            document.getElementById('selectedForEmail').textContent = selectedCount;
             
             // Enable/disable email button
             const emailDraftBtn = document.getElementById('emailDraftBtn');
@@ -1194,6 +1342,7 @@ ASH Department`
             selectedStudents.clear();
             initDataTable(allStudents);
             document.getElementById('searchResults').textContent = allStudents.length;
+            document.getElementById('searchResultsCount').textContent = allStudents.length;
             document.getElementById('prnBadgesContainer').style.display = 'none';
             showNotification('Search cleared', 'success');
         }
@@ -1203,6 +1352,7 @@ ASH Department`
             document.getElementById('totalStudents').textContent = allStudents.length;
             document.getElementById('searchResults').textContent = displayedStudents.length;
             document.getElementById('dataStatus').textContent = 'Loaded';
+            document.getElementById('searchResultsCount').textContent = displayedStudents.length;
         }
         
         // Show/hide loading
