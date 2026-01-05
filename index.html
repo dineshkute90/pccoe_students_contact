@@ -16,16 +16,89 @@
             --pccoe-light: #e8eaf6;
         }
         
-        body {
+        /* Login Page Styles */
+        .login-page {
             background-color: #f5f7fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
         }
         
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 15px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(26, 35, 126, 0.2);
+            border-top: 5px solid var(--pccoe-blue);
+        }
+        
+        .login-logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--pccoe-blue);
+        }
+        
+        .login-logo-img {
+            height: 80px;
+            width: auto;
+            margin-bottom: 15px;
+        }
+        
+        .app-title {
+            color: var(--pccoe-blue);
+            text-align: center;
+            margin: 1.5rem 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .app-title span {
+            color: var(--pccoe-red);
+        }
+        
+        .login-btn {
+            background: var(--pccoe-green);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            color: white;
+            letter-spacing: 0.5px;
+            border-radius: 8px;
+        }
+        
+        .login-btn:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+            color: white;
+        }
+        
+        .login-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+        
         .main-container {
+            display: none;
+            width: 100%;
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
         }
         
         .directory-header {
@@ -378,62 +451,11 @@
             margin-top: 0.25rem;
         }
         
-        .admin-features {
-            background: #fff3e0;
-            border-left: 4px solid var(--pccoe-gold);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        
-        .admin-badge {
-            background: linear-gradient(135deg, var(--pccoe-gold) 0%, #ffb74d 100%);
-            color: #1a237e;
-            padding: 3px 10px;
-            border-radius: 15px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            margin-left: 10px;
-        }
-        
-        .admin-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .admin-btn {
-            background: linear-gradient(135deg, var(--pccoe-gold) 0%, #ffb74d 100%);
-            border: none;
-            color: #1a237e;
-            padding: 8px 15px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .admin-btn:hover {
-            background: linear-gradient(135deg, #f57c00 0%, var(--pccoe-gold) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
-            color: #1a237e;
-        }
-        
         .action-buttons {
             margin: 20px 0;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-        }
-        
-        .email-actions {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
         }
         
         .send-email-btn {
@@ -457,25 +479,6 @@
         
         .send-email-btn i {
             font-size: 0.8rem;
-        }
-        
-        .bulk-email-btn {
-            background: linear-gradient(135deg, #ea4335 0%, #fbbc05 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.3s;
-        }
-        
-        .bulk-email-btn:hover {
-            background: linear-gradient(135deg, #d62516 0%, #e6a700 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(234, 67, 53, 0.3);
         }
         
         .selected-count {
@@ -554,6 +557,57 @@
             color: #1a237e;
         }
         
+        /* Loading Popup Modal */
+        .loading-modal .modal-content {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        
+        .loading-modal .modal-body {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .loading-modal .spinner-border {
+            width: 4rem;
+            height: 4rem;
+        }
+        
+        .loading-modal h5 {
+            margin-top: 20px;
+            color: var(--pccoe-blue);
+        }
+        
+        .loading-modal p {
+            color: #666;
+        }
+        
+        /* Logout Button */
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-weight: 500;
+            margin-left: auto;
+            white-space: nowrap;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+            color: white;
+        }
+        
         @media (max-width: 768px) {
             .directory-header {
                 flex-direction: column;
@@ -588,8 +642,9 @@
                 flex-direction: column;
             }
             
-            .email-actions {
-                flex-wrap: wrap;
+            .logout-btn {
+                margin-top: 10px;
+                margin-left: 0;
             }
         }
         
@@ -600,6 +655,77 @@
     </style>
 </head>
 <body>
+    <!-- Login Page -->
+    <div class="login-page" id="loginPage">
+        <div class="login-container">
+            <div class="login-box">
+                <div class="login-logo">
+                    <img src="https://raw.githubusercontent.com/dineshkute90/pccoe_fy_contact_details/main/pccoe_logo.png" 
+                         alt="PCCOE Logo" 
+                         class="login-logo-img">
+                    <h2>PCCOE Student Directory</h2>
+                    <p class="text-muted mb-0">Department of Applied Sciences & Humanities</p>
+                </div>
+                
+                <div class="login-error" id="loginError">
+                    <i class="fas fa-exclamation-circle"></i> Invalid username or password
+                </div>
+                
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <input type="text" class="form-control" id="username" 
+                               placeholder="Enter username" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <input type="password" class="form-control" id="password" 
+                               placeholder="Enter password" required>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    
+                    <button type="submit" class="btn login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> Admin: Mr. Dinesh Kute
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Popup Modal -->
+    <div class="modal loading-modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="loadingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 class="mt-3">Loading Student Data</h5>
+                    <p>Please wait while we load all student information...</p>
+                    <div class="progress mt-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Application Section -->
     <div class="main-container" id="mainSection">
         <div class="directory-header">
@@ -616,6 +742,11 @@
                 <p>Department of Applied Sciences & Humanities</p>
                 <p>2025-26</p>
             </div>
+            
+            <!-- Logout Button -->
+            <a class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
         
         <!-- Search Section -->
@@ -800,10 +931,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
+        // Login credentials
+        const VALID_CREDENTIALS = {
+            'pccoeash': 'ashpccoe@2025',  // Regular user
+            'admin': 'pccoe@admin'        // Admin user
+        };
+        
         // Apps Script URL
         const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz95lLcZPbBzRJHsbcWUgxdxeH-dSijKeoUxUzcAI3iyNiNce_7TUGNIMo1uWs50xhE1g/exec';
         
-        // Email Drafts
+        // Email Drafts with updated FA Schedule
         const EMAIL_DRAFTS = {
             openDay: {
                 subject: "Open Day Schedule for Examination",
@@ -827,25 +964,27 @@ Thanking you.
 ASH Department – Examination Section`
             },
             faSchedule: {
-                subject: "FA Schedule Announcement",
+                subject: "Formative Assessment Schedule",
                 body: `Dear Students,
 
-This is to inform you about the Formative Assessment (FA) Schedule for the current semester.
+This is to inform you that the Formative Assessment (FA) schedule is as detailed below. Students are requested to take note of the same.
 
-**Important Dates:**
-- FA 1: [Date Range]
-- FA 2: [Date Range]
-- FA 3: [Date Range]
+• Course Name: {Enter your course name}
+• Course Code: {Enter your course code}
+• Course Teacher: {Name of Course Teacher}
 
-**Please Note:**
-- All assessments will be conducted as per the academic calendar
-- Attendance is mandatory
-- Bring your college ID card for verification
+Details	FA I	FA II
+Tool	{Mention FA I Tool}	{Mention FA II Tool}
+Syllabus	{Mention unit number}	{Mention unit number}
+Max Marks	{Mention marks}	{Mention marks}
+Date	{Date of Exam}	{Date of Exam}
+Time	{Time of Exam}	{Time of Exam}
+Location	{Exam Location}	{Exam Location}
 
-For any queries, please contact your respective course teachers.
+Students are advised to appear for the Formative Assessment examinations strictly as per the above schedule.
 
-Best regards,
-ASH Department`
+Thanking you.
+ASH Department – Examination Section`
             },
             custom: {
                 subject: "Important Announcement",
@@ -863,15 +1002,29 @@ ASH Department`
         let selectedStudents = new Set();
         let dataTable = null;
         let lastSearchCriteria = '';
+        let isAdmin = false;
+        let loadingModal = null;
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize loading modal
+            loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'), {
+                backdrop: 'static',
+                keyboard: false
+            });
+            
             // Set current date
             document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric'
             });
+            
+            // Setup login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Check if user is already logged in
+            checkLoginStatus();
             
             // Setup search input
             const multiPRNInput = document.getElementById('multiPRNSearch');
@@ -907,14 +1060,102 @@ ASH Department`
                     dropdown.classList.remove('show');
                 }
             });
-            
-            // Load data
-            loadData();
         });
         
-        // Load data from Google Sheets
+        // Handle login
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const loginError = document.getElementById('loginError');
+            
+            // Clear previous error
+            loginError.style.display = 'none';
+            
+            // Validate credentials
+            if (VALID_CREDENTIALS[username] && VALID_CREDENTIALS[username] === password) {
+                isAdmin = (username === 'admin');
+                
+                // Save login if "Remember me" is checked
+                if (rememberMe) {
+                    const loginData = {
+                        loggedIn: true,
+                        isAdmin: isAdmin,
+                        expiry: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+                    };
+                    localStorage.setItem('pccoeLogin', JSON.stringify(loginData));
+                } else {
+                    // Session only
+                    sessionStorage.setItem('pccoeSession', JSON.stringify({ loggedIn: true, isAdmin: isAdmin }));
+                }
+                
+                showMainApp();
+            } else {
+                loginError.style.display = 'block';
+                document.getElementById('password').value = '';
+            }
+        }
+        
+        // Check if user is already logged in
+        function checkLoginStatus() {
+            const savedLogin = localStorage.getItem('pccoeLogin');
+            const sessionLogin = sessionStorage.getItem('pccoeSession');
+            
+            if (savedLogin) {
+                const loginData = JSON.parse(savedLogin);
+                if (loginData.loggedIn && loginData.expiry > Date.now()) {
+                    isAdmin = loginData.isAdmin || false;
+                    showMainApp();
+                    return;
+                }
+            }
+            
+            if (sessionLogin) {
+                const loginData = JSON.parse(sessionLogin);
+                if (loginData.loggedIn) {
+                    isAdmin = loginData.isAdmin || false;
+                    showMainApp();
+                    return;
+                }
+            }
+            
+            // Show login page if not logged in
+            showLogin();
+        }
+        
+        // Show login page
+        function showLogin() {
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('mainSection').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('username').focus();
+        }
+        
+        // Show main application
+        function showMainApp() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainSection').style.display = 'block';
+            
+            // Load data with loading popup
+            loadData();
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('pccoeLogin');
+            sessionStorage.removeItem('pccoeSession');
+            showLogin();
+        }
+        
+        // Load data from Google Sheets with loading popup
         async function loadData() {
-            showLoading(true);
+            // Show loading popup
+            loadingModal.show();
+            document.getElementById('loading').style.display = 'block';
             
             try {
                 console.log('Loading data from:', APP_SCRIPT_URL);
@@ -947,7 +1188,9 @@ ASH Department`
                 console.error('Error:', error);
                 showNotification('Error loading data: ' + error.message, 'error');
             } finally {
-                showLoading(false);
+                // Hide loading popup
+                loadingModal.hide();
+                document.getElementById('loading').style.display = 'none';
             }
         }
         
