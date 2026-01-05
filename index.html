@@ -252,8 +252,8 @@
             display: inline-block;
         }
         
-        .export-btn {
-            background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+        .email-draft-btn {
+            background: linear-gradient(135deg, #34a853 0%, #4caf50 100%);
             border: none;
             color: white;
             padding: 8px 20px;
@@ -263,34 +263,61 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            position: relative;
         }
         
-        .export-btn:hover {
-            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+        .email-draft-btn:hover {
+            background: linear-gradient(135deg, #2e8b47 0%, #45a049 100%);
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
+            box-shadow: 0 4px 8px rgba(52, 168, 83, 0.3);
             color: white;
         }
         
-        .export-btn:disabled {
+        .email-draft-btn:disabled {
             background: #6c757d;
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
         
-        .export-options {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8f9fa;
+        .email-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .email-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 250px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
             border-radius: 8px;
+            overflow: hidden;
             border: 1px solid #dee2e6;
         }
         
-        .export-option-label {
-            font-weight: 600;
-            margin-bottom: 10px;
+        .email-dropdown-content.show {
+            display: block;
+        }
+        
+        .email-dropdown-item {
+            padding: 12px 16px;
+            display: block;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+        }
+        
+        .email-dropdown-item:hover {
+            background-color: #f5f5f5;
             color: #1a237e;
+        }
+        
+        .email-dropdown-item i {
+            margin-right: 8px;
+            color: #5c6bc0;
         }
         
         .search-results-header {
@@ -580,48 +607,32 @@
                 </div>
             </div>
             
-            <!-- Export Options -->
-            <div class="export-options">
-                <div class="row g-3">
-                    <div class="col-md-12">
-                        <p class="export-option-label mb-2">
-                            <i class="fas fa-download"></i> Export Selected Students
-                        </p>
-                        <div class="d-flex align-items-center gap-3">
-                            <button class="btn export-btn" onclick="exportSelectedToExcel()" id="exportSelectedBtn" disabled>
-                                <i class="fas fa-file-excel"></i> Export Selected to Excel
-                                <span class="selected-count" id="selectedCount">0</span>
-                            </button>
-                            <select class="form-select" id="exportFormat" style="width: auto;">
-                                <option value="xlsx">Excel (.xlsx)</option>
-                                <option value="csv">CSV (.csv)</option>
-                            </select>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="includeTimestamp" checked>
-                                <label class="form-check-label" for="includeTimestamp">
-                                    Include timestamp
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-12">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i> Note: Only exports currently selected students
-                        </small>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Action Buttons -->
             <div class="action-buttons">
                 <button class="select-all-btn" onclick="toggleSelectAll()">
                     <i class="fas fa-check-square"></i> Select All
                 </button>
-                <button class="send-email-btn" onclick="sendEmailsToSelected()">
-                    <i class="fas fa-envelope"></i> Send Email to Selected
-                </button>
+                
+                <!-- Email Draft Dropdown -->
+                <div class="email-dropdown">
+                    <button class="email-draft-btn" id="emailDraftBtn" onclick="toggleEmailDropdown()">
+                        <i class="fas fa-envelope"></i> Send Email to Selected
+                        <span class="selected-count" id="selectedCount">0</span>
+                        <i class="fas fa-caret-down" style="margin-left: 5px;"></i>
+                    </button>
+                    <div class="email-dropdown-content" id="emailDropdown">
+                        <a class="email-dropdown-item" onclick="sendEmailWithDraft('openDay')">
+                            <i class="fas fa-calendar-day"></i> Open Day Email
+                        </a>
+                        <a class="email-dropdown-item" onclick="sendEmailWithDraft('faSchedule')">
+                            <i class="fas fa-calendar-alt"></i> FA Schedule Email
+                        </a>
+                        <a class="email-dropdown-item" onclick="sendEmailWithDraft('custom')">
+                            <i class="fas fa-edit"></i> Custom Email
+                        </a>
+                    </div>
+                </div>
+                
                 <button class="clear-search-btn" onclick="clearSearch()">
                     <i class="fas fa-times"></i> Clear Search
                 </button>
@@ -655,7 +666,7 @@
                 <div class="stats-card">
                     <i class="fas fa-check-circle"></i>
                     <h5 id="exportReady">0</h5>
-                    <small>Selected for Export</small>
+                    <small>Selected for Email</small>
                 </div>
             </div>
         </div>
@@ -673,21 +684,7 @@
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
             <h5>Search Students</h5>
             <p class="text-muted">Enter PRNs above to find students.</p>
-            <p class="text-muted small">Search results will be displayed here and available for selection and export.</p>
-        </div>
-
-        <!-- Search Results Header -->
-        <div class="search-results-header" id="searchResultsHeader" style="display: none;">
-            <div>
-                <h6 class="mb-0"><i class="fas fa-search me-2"></i>Search Results</h6>
-                <p class="mb-0 mt-1">
-                    Found <span class="results-count" id="resultsCount">0</span> student(s) 
-                    <span id="searchCriteria" class="text-muted"></span>
-                </p>
-            </div>
-            <button class="btn export-btn" onclick="exportSelectedToExcel()" id="exportHeaderBtn" disabled>
-                <i class="fas fa-file-excel"></i> Export Selected
-            </button>
+            <p class="text-muted small">Search results will be displayed here and available for selection and email sending.</p>
         </div>
 
         <!-- Data Table -->
@@ -729,11 +726,65 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
         // Apps Script URL
         const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz95lLcZPbBzRJHsbcWUgxdxeH-dSijKeoUxUzcAI3iyNiNce_7TUGNIMo1uWs50xhE1g/exec';
+        
+        // Email Drafts
+        const EMAIL_DRAFTS = {
+            openDay: {
+                subject: "Open Day Schedule for Examination",
+                body: `Dear Students,
+
+This is to inform you that the Open Day of the Examination has been scheduled as per the
+details given below:
+
+- **Examination**: SA / Re-SA / Summer  
+- **Course Name**: {Enter your course name}  
+- **Course Code**: {Enter your course code}  
+- **Date**: {Open Day Date}  
+- **Time**: {Open Day Time}  
+- **Course Teacher**: {Name of Course Teacher}
+
+Students are advised to attend the open day as scheduled. Please note that no queries
+**regarding marks will be entertained after the open day.**
+
+Thanking you.
+
+ASH Department – Examination Section`
+            },
+            faSchedule: {
+                subject: "FA Schedule Announcement",
+                body: `Dear Students,
+
+This is to inform you about the Formative Assessment (FA) Schedule for the current semester.
+
+**Important Dates:**
+- FA 1: [Date Range]
+- FA 2: [Date Range]
+- FA 3: [Date Range]
+
+**Please Note:**
+- All assessments will be conducted as per the academic calendar
+- Attendance is mandatory
+- Bring your college ID card for verification
+
+For any queries, please contact your respective course teachers.
+
+Best regards,
+ASH Department`
+            },
+            custom: {
+                subject: "Important Announcement",
+                body: `Dear Students,
+
+[Your custom message here]
+
+Best regards,
+ASH Department`
+            }
+        };
         
         let allStudents = [];
         let displayedStudents = [];
@@ -774,6 +825,15 @@
                         searchMultiplePRNs();
                     }
                 }, 100);
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                const dropdown = document.getElementById('emailDropdown');
+                const button = document.getElementById('emailDraftBtn');
+                if (!dropdown.contains(event.target) && !button.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
             });
             
             // Load data
@@ -834,7 +894,6 @@
             if (students.length === 0) {
                 document.getElementById('studentTable').style.display = 'none';
                 document.getElementById('noResultsMessage').style.display = 'block';
-                document.getElementById('searchResultsHeader').style.display = 'none';
                 document.getElementById('totalStudents').textContent = '0';
                 document.getElementById('exportReady').textContent = '0';
                 updateSelectedCount();
@@ -909,7 +968,6 @@
             
             document.getElementById('studentTable').style.display = 'table';
             document.getElementById('noResultsMessage').style.display = 'none';
-            document.getElementById('searchResultsHeader').style.display = 'flex';
             
             updateStats();
             updateSelectedCount();
@@ -924,8 +982,6 @@
                 // Show all students if search is empty
                 initDataTable(allStudents);
                 document.getElementById('searchResults').textContent = allStudents.length;
-                document.getElementById('resultsCount').textContent = allStudents.length;
-                document.getElementById('searchCriteria').textContent = '';
                 document.getElementById('prnBadgesContainer').style.display = 'none';
                 return;
             }
@@ -978,8 +1034,6 @@
             // Display filtered students
             initDataTable(filteredStudents);
             document.getElementById('searchResults').textContent = filteredStudents.length;
-            document.getElementById('resultsCount').textContent = filteredStudents.length;
-            document.getElementById('searchCriteria').textContent = `(${lastSearchCriteria})`;
             
             if (filteredStudents.length > 0) {
                 showNotification(`Found ${filteredStudents.length} student(s) matching ${prnList.length} PRN(s)`, 'success');
@@ -1072,21 +1126,24 @@
             document.getElementById('selectedCount').textContent = selectedCount;
             document.getElementById('exportReady').textContent = selectedCount;
             
-            // Enable/disable export buttons
-            const exportSelectedBtn = document.getElementById('exportSelectedBtn');
-            const exportHeaderBtn = document.getElementById('exportHeaderBtn');
+            // Enable/disable email button
+            const emailDraftBtn = document.getElementById('emailDraftBtn');
             
             if (selectedCount > 0) {
-                exportSelectedBtn.disabled = false;
-                exportHeaderBtn.disabled = false;
+                emailDraftBtn.disabled = false;
             } else {
-                exportSelectedBtn.disabled = true;
-                exportHeaderBtn.disabled = true;
+                emailDraftBtn.disabled = true;
             }
         }
         
-        // Send emails to selected students
-        function sendEmailsToSelected() {
+        // Toggle email dropdown
+        function toggleEmailDropdown() {
+            const dropdown = document.getElementById('emailDropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        // Send email with selected draft
+        function sendEmailWithDraft(draftType) {
             if (selectedStudents.size === 0) {
                 showNotification('Please select at least one student to send email.', 'error');
                 return;
@@ -1108,107 +1165,27 @@
                 return;
             }
             
-            // Create Gmail URL with recipients
+            // Get email draft
+            const draft = EMAIL_DRAFTS[draftType];
+            if (!draft) {
+                showNotification('Email draft not found.', 'error');
+                return;
+            }
+            
+            // Create Gmail URL with recipients, subject, and body
             const emailString = selectedEmails.join(',');
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailString)}`;
+            const subject = encodeURIComponent(draft.subject);
+            const body = encodeURIComponent(draft.body);
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailString}&su=${subject}&body=${body}`;
             
             // Open Gmail in new tab
             window.open(gmailUrl, '_blank');
             
+            // Close dropdown
+            document.getElementById('emailDropdown').classList.remove('show');
+            
             // Show confirmation
-            showNotification(`Opening Gmail with ${selectedEmails.length} recipient(s)`, 'success');
-        }
-        
-        // Export selected students to Excel
-        function exportSelectedToExcel() {
-            if (selectedStudents.size === 0) {
-                showNotification('Please select at least one student to export.', 'error');
-                return;
-            }
-            
-            // Get selected students
-            const studentsToExport = allStudents.filter(student => selectedStudents.has(student._id));
-            
-            const includeTimestamp = document.getElementById('includeTimestamp').checked;
-            const format = document.getElementById('exportFormat').value;
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-            
-            let fileName = 'PCCOE_Selected_Students';
-            
-            if (includeTimestamp) {
-                fileName += `_${timestamp}`;
-            }
-            
-            fileName += `.${format}`;
-            
-            // Prepare worksheet data
-            const worksheetData = [
-                ['PCCOE Student Directory - Department of Applied Sciences & Humanities'],
-                ['Exported on: ' + new Date().toLocaleString('en-IN')],
-                ['Selected Students Export'],
-                ['Total Records: ' + studentsToExport.length],
-                [''], // Empty row
-                ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Division']
-            ];
-            
-            // Add student data
-            studentsToExport.forEach((student, index) => {
-                worksheetData.push([
-                    student['Sr. No.'] || student.sr_no || index + 1,
-                    student['Offering Year'] || student.offering_year || '',
-                    student.PRN || student.prn || '',
-                    student['Student Name'] || student.name || '',
-                    student['Student Mobile'] || student.student_mobile || '',
-                    student['Parent Mobile'] || student.parent_mobile || '',
-                    student['Email ID'] || student.email || '',
-                    student.branch || student['Branch'] || '',
-                    student.division || student['Division'] || ''
-                ]);
-            });
-            
-            // Create workbook
-            const workbook = XLSX.utils.book_new();
-            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-            
-            // Set column widths
-            const colWidths = [
-                { wch: 8 },   // Sr. No.
-                { wch: 15 },  // Offering Year
-                { wch: 12 },  // PRN
-                { wch: 25 },  // Student Name
-                { wch: 15 },  // Student Mobile
-                { wch: 15 },  // Parent Mobile
-                { wch: 30 },  // Email ID
-                { wch: 15 },  // Branch
-                { wch: 10 }   // Division
-            ];
-            worksheet['!cols'] = colWidths;
-            
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Selected Students');
-            
-            try {
-                if (format === 'xlsx') {
-                    XLSX.writeFile(workbook, fileName);
-                } else {
-                    // For CSV, convert to CSV string
-                    const csv = XLSX.utils.sheet_to_csv(worksheet);
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    const url = URL.createObjectURL(blob);
-                    link.setAttribute('href', url);
-                    link.setAttribute('download', fileName);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }
-                
-                showNotification(`Exported ${studentsToExport.length} selected students to ${fileName}`, 'success');
-            } catch (error) {
-                console.error('Export error:', error);
-                showNotification('Error exporting file. Please try again.', 'error');
-            }
+            showNotification(`Opening Gmail with ${selectedEmails.length} recipient(s) using ${draftType} draft`, 'success');
         }
         
         // Clear search
@@ -1217,8 +1194,6 @@
             selectedStudents.clear();
             initDataTable(allStudents);
             document.getElementById('searchResults').textContent = allStudents.length;
-            document.getElementById('resultsCount').textContent = allStudents.length;
-            document.getElementById('searchCriteria').textContent = '';
             document.getElementById('prnBadgesContainer').style.display = 'none';
             showNotification('Search cleared', 'success');
         }
@@ -1228,7 +1203,6 @@
             document.getElementById('totalStudents').textContent = allStudents.length;
             document.getElementById('searchResults').textContent = displayedStudents.length;
             document.getElementById('dataStatus').textContent = 'Loaded';
-            document.getElementById('resultsCount').textContent = displayedStudents.length;
         }
         
         // Show/hide loading
