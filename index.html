@@ -608,6 +608,33 @@
             color: white;
         }
         
+        /* Restricted Export Style */
+        .restricted-export {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+            cursor: not-allowed;
+        }
+        
+        .restricted-export:hover {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .restricted-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+        
+        .restricted-note i {
+            color: #ffc107;
+            margin-right: 8px;
+        }
+        
         @media (max-width: 768px) {
             .directory-header {
                 flex-direction: column;
@@ -779,7 +806,7 @@
                 </div>
             </div>
             
-            <!-- Export Options -->
+            <!-- Export Options - RESTRICTED TO SEARCH RESULTS ONLY -->
             <div class="export-options">
                 <div class="row g-3">
                     <div class="col-md-12">
@@ -787,9 +814,9 @@
                             <i class="fas fa-download"></i> Export Search Results
                         </p>
                         <div class="d-flex align-items-center gap-3">
-                            <button class="btn export-btn" onclick="exportSearchResultsToExcel()" id="exportSearchResultsBtn">
+                            <button class="btn export-btn restricted-export" onclick="exportSearchResultsToExcel()" id="exportSearchResultsBtn" disabled>
                                 <i class="fas fa-file-excel"></i> Export Search Results to Excel
-                                <span id="searchResultsCount" style="background: #4285F4; color: white; padding: 3px 8px; border-radius: 15px; font-size: 12px; margin-left: 10px;">0</span>
+                                <span id="searchResultsCount" style="background: #6c757d; color: white; padding: 3px 8px; border-radius: 15px; font-size: 12px; margin-left: 10px;">0</span>
                             </button>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="includeTimestamp" checked>
@@ -800,12 +827,18 @@
                         </div>
                     </div>
                 </div>
-                <div class="row mt-2">
-                    <div class="col-12">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i> Note: Exports all currently displayed search results
-                        </small>
-                    </div>
+                
+                <!-- Restricted Note -->
+                <div class="restricted-note mt-3" id="exportRestrictionNote">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Export Restriction:</strong> Export functionality is only available for search results. 
+                    Please search for specific PRNs to enable export.
+                </div>
+                
+                <!-- Show when search is performed -->
+                <div class="alert alert-success mt-3" id="exportAvailableAlert" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Export Enabled:</strong> You can now export the search results shown in the table below.
                 </div>
             </div>
             
@@ -973,13 +1006,13 @@ This is to inform you that the Formative Assessment (FA) schedule is as detailed
 • Course Code: {Enter your course code}
 • Course Teacher: {Name of Course Teacher}
 
-Details	FA I	FA II
-Tool	{Mention FA I Tool}	{Mention FA II Tool}
-Syllabus	{Mention unit number}	{Mention unit number}
-Max Marks	{Mention marks}	{Mention marks}
-Date	{Date of Exam}	{Date of Exam}
-Time	{Time of Exam}	{Time of Exam}
-Location	{Exam Location}	{Exam Location}
+Details of FA I / FA II
+- Tool:	{Mention FA I/ FA II Tool}
+- Syllabus: {Mention unit number}
+- Max Marks: {Mention marks}
+- Date:	{Date of Exam}
+- Time:	{Time of Exam}
+- Location:	{Exam Location}
 
 Students are advised to appear for the Formative Assessment examinations strictly as per the above schedule.
 
@@ -1004,6 +1037,7 @@ ASH Department`
         let lastSearchCriteria = '';
         let isAdmin = false;
         let loadingModal = null;
+        let hasPerformedSearch = false; // Flag to track if search has been performed
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -1060,6 +1094,9 @@ ASH Department`
                     dropdown.classList.remove('show');
                 }
             });
+            
+            // Initialize export button as disabled
+            disableExportButton();
         });
         
         // Handle login
@@ -1178,9 +1215,23 @@ ASH Department`
                         student._selected = false;
                     });
                     
-                    // Initialize DataTable
-                    initDataTable(allStudents);
+                    // Initialize DataTable but don't show all data initially
+                    // We'll show only after search
+                    displayedStudents = [];
                     updateStats();
+                    
+                    // Show initial message
+                    document.getElementById('noResultsMessage').style.display = 'block';
+                    document.getElementById('noResultsMessage').innerHTML = `
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5>Search Students by PRN</h5>
+                        <p class="text-muted">Enter PRNs in the search box above to find students.</p>
+                        <p class="text-muted small">Search results will be displayed here and available for export.</p>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
+                        </div>
+                    `;
                 } else {
                     throw new Error(data.error || 'Failed to load data');
                 }
@@ -1209,9 +1260,6 @@ ASH Department`
             if (students.length === 0) {
                 document.getElementById('studentTable').style.display = 'none';
                 document.getElementById('noResultsMessage').style.display = 'block';
-                document.getElementById('totalStudents').textContent = '0';
-                document.getElementById('selectedForEmail').textContent = '0';
-                document.getElementById('searchResultsCount').textContent = '0';
                 updateSelectedCount();
                 return;
             }
@@ -1288,26 +1336,84 @@ ASH Department`
             updateStats();
             updateSelectedCount();
             updateSelectAllCheckbox();
+            
+            // Enable export button if we have search results
+            if (hasPerformedSearch && displayedStudents.length > 0) {
+                enableExportButton();
+            } else {
+                disableExportButton();
+            }
+        }
+        
+        // Enable export button
+        function enableExportButton() {
+            const exportBtn = document.getElementById('exportSearchResultsBtn');
+            const searchResultsCount = document.getElementById('searchResultsCount');
+            
+            exportBtn.disabled = false;
+            exportBtn.classList.remove('restricted-export');
+            exportBtn.classList.add('export-btn');
+            searchResultsCount.style.backgroundColor = '#4285F4';
+            
+            // Show export available alert
+            document.getElementById('exportAvailableAlert').style.display = 'block';
+            document.getElementById('exportRestrictionNote').style.display = 'none';
+        }
+        
+        // Disable export button
+        function disableExportButton() {
+            const exportBtn = document.getElementById('exportSearchResultsBtn');
+            const searchResultsCount = document.getElementById('searchResultsCount');
+            
+            exportBtn.disabled = true;
+            exportBtn.classList.add('restricted-export');
+            exportBtn.classList.remove('export-btn');
+            searchResultsCount.style.backgroundColor = '#6c757d';
+            
+            // Hide export available alert
+            document.getElementById('exportAvailableAlert').style.display = 'none';
+            document.getElementById('exportRestrictionNote').style.display = 'block';
         }
         
         // Search multiple PRNs
         function searchMultiplePRNs() {
             const multiPRNInput = document.getElementById('multiPRNSearch').value.trim();
             
+            // Reset selected students
+            selectedStudents.clear();
+            updateSelectedCount();
+            
             if (!multiPRNInput) {
-                // Show all students if search is empty
-                initDataTable(allStudents);
-                document.getElementById('searchResults').textContent = allStudents.length;
-                document.getElementById('searchResultsCount').textContent = allStudents.length;
+                // Clear search and show initial message
+                hasPerformedSearch = false;
+                displayedStudents = [];
+                updateStats();
+                document.getElementById('noResultsMessage').style.display = 'block';
+                document.getElementById('noResultsMessage').innerHTML = `
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5>Search Students by PRN</h5>
+                    <p class="text-muted">Enter PRNs in the search box above to find students.</p>
+                    <p class="text-muted small">Search results will be displayed here and available for export.</p>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
+                    </div>
+                `;
+                document.getElementById('studentTable').style.display = 'none';
                 document.getElementById('prnBadgesContainer').style.display = 'none';
+                disableExportButton();
                 return;
             }
+            
+            // Set flag that search has been performed
+            hasPerformedSearch = true;
             
             // Parse PRNs with multiple separators
             const prnList = parsePRNInput(multiPRNInput);
             
             if (prnList.length === 0) {
                 showNotification('No valid PRNs found in input. Please check your input.', 'error');
+                disableExportButton();
                 return;
             }
             
@@ -1354,9 +1460,11 @@ ASH Department`
             document.getElementById('searchResultsCount').textContent = filteredStudents.length;
             
             if (filteredStudents.length > 0) {
-                showNotification(`Found ${filteredStudents.length} student(s) matching ${prnList.length} PRN(s)`, 'success');
+                showNotification(`Found ${filteredStudents.length} student(s) matching ${prnList.length} PRN(s). Export now enabled.`, 'success');
+                enableExportButton();
             } else {
-                showNotification(`No students found for the ${prnList.length} PRN(s) provided`, 'error');
+                showNotification(`No students found for the ${prnList.length} PRN(s) provided.`, 'error');
+                disableExportButton();
             }
         }
         
@@ -1381,8 +1489,15 @@ ASH Department`
         
         // Export search results to Excel
         function exportSearchResultsToExcel() {
-            if (displayedStudents.length === 0) {
-                showNotification('No search results to export.', 'error');
+            // Check if export is enabled (only for search results)
+            if (!hasPerformedSearch || displayedStudents.length === 0) {
+                showNotification('Please perform a search first to export results.', 'error');
+                return;
+            }
+            
+            const exportBtn = document.getElementById('exportSearchResultsBtn');
+            if (exportBtn.disabled) {
+                showNotification('Export is only available for search results. Please search for specific PRNs first.', 'error');
                 return;
             }
             
@@ -1402,6 +1517,7 @@ ASH Department`
                 ['PCCOE Student Directory - Department of Applied Sciences & Humanities'],
                 ['Exported on: ' + new Date().toLocaleString('en-IN')],
                 ['Search Results Export'],
+                ['Search Criteria: ' + lastSearchCriteria],
                 ['Total Records: ' + displayedStudents.length],
                 [''], // Empty row
                 ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Division']
@@ -1583,10 +1699,29 @@ ASH Department`
         function clearSearch() {
             document.getElementById('multiPRNSearch').value = '';
             selectedStudents.clear();
-            initDataTable(allStudents);
-            document.getElementById('searchResults').textContent = allStudents.length;
-            document.getElementById('searchResultsCount').textContent = allStudents.length;
+            hasPerformedSearch = false;
+            
+            // Reset to initial state
+            displayedStudents = [];
+            updateStats();
+            
+            document.getElementById('noResultsMessage').style.display = 'block';
+            document.getElementById('noResultsMessage').innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>Search Students by PRN</h5>
+                <p class="text-muted">Enter PRNs in the search box above to find students.</p>
+                <p class="text-muted small">Search results will be displayed here and available for export.</p>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
+                </div>
+            `;
+            
+            document.getElementById('studentTable').style.display = 'none';
+            document.getElementById('searchResults').textContent = '0';
+            document.getElementById('searchResultsCount').textContent = '0';
             document.getElementById('prnBadgesContainer').style.display = 'none';
+            disableExportButton();
             showNotification('Search cleared', 'success');
         }
         
