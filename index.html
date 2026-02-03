@@ -635,6 +635,28 @@
             margin-right: 8px;
         }
         
+        /* New Search Options Styles */
+        .search-option-group {
+            border-bottom: 1px dashed #dee2e6;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .search-option-group:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        
+        .search-section-title {
+            font-weight: 600;
+            color: var(--pccoe-blue);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
         @media (max-width: 768px) {
             .directory-header {
                 flex-direction: column;
@@ -778,12 +800,67 @@
         
         <!-- Search Section -->
         <div class="search-box">
-            <div class="multi-search-container">
+            <!-- Search by PRN (Single) -->
+            <div class="search-option-group">
+                <div class="search-section-title">
+                    <i class="fas fa-user-graduate"></i> Search by PRN (Single)
+                </div>
                 <div class="row g-3">
                     <div class="col-md-10">
-                        <label for="multiPRNSearch" class="form-label">
-                            <i class="fas fa-list-check"></i> Search Multiple PRNs
-                        </label>
+                        <input type="text" class="form-control" id="singlePRNSearch" 
+                               placeholder="e.g., 123B1G035">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn search-btn w-100" onclick="searchSinglePRN()">
+                            <i class="fas fa-magnifying-glass"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search by Name -->
+            <div class="search-option-group">
+                <div class="search-section-title">
+                    <i class="fas fa-user"></i> Search by Name
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-10">
+                        <input type="text" class="form-control" id="nameSearch" 
+                               placeholder="Enter student name">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn search-btn w-100" onclick="searchByName()">
+                            <i class="fas fa-magnifying-glass"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Division -->
+            <div class="search-option-group">
+                <div class="search-section-title">
+                    <i class="fas fa-users"></i> Division
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-10">
+                        <input type="text" class="form-control" id="divisionSearch" 
+                               placeholder="e.g., A, B">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn search-btn w-100" onclick="searchByDivision()">
+                            <i class="fas fa-magnifying-glass"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search Multiple PRNs -->
+            <div class="search-option-group">
+                <div class="search-section-title">
+                    <i class="fas fa-list-check"></i> Search Multiple PRNs
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-10">
                         <textarea class="form-control" id="multiPRNSearch" 
                                placeholder="Paste PRNs from Excel or enter separated by commas, spaces, or semicolons&#10;e.g., 123B1G035, 123B1G036 123B1G037; 123B1G038"
                                rows="3"></textarea>
@@ -806,7 +883,7 @@
                 </div>
             </div>
             
-            <!-- Export Options - RESTRICTED TO SEARCH RESULTS ONLY -->
+            <!-- Export Options -->
             <div class="export-options">
                 <div class="row g-3">
                     <div class="col-md-12">
@@ -918,7 +995,7 @@
         <div class="no-results-message" id="noResultsMessage">
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
             <h5>Search Students</h5>
-            <p class="text-muted">Enter PRNs above to find students.</p>
+            <p class="text-muted">Use the search options above to find students.</p>
             <p class="text-muted small">Search results will be displayed here and available for selection and email sending.</p>
         </div>
 
@@ -1060,7 +1137,49 @@ ASH Department`
             // Check if user is already logged in
             checkLoginStatus();
             
-            // Setup search input
+            // Setup search inputs
+            setupSearchInputs();
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                const dropdown = document.getElementById('emailDropdown');
+                const button = document.getElementById('emailDraftBtn');
+                if (!dropdown.contains(event.target) && !button.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+            
+            // Initialize export button as disabled
+            disableExportButton();
+        });
+        
+        // Setup search inputs with event listeners
+        function setupSearchInputs() {
+            // Single PRN search
+            const singlePRNInput = document.getElementById('singlePRNSearch');
+            singlePRNInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchSinglePRN();
+                }
+            });
+            
+            // Name search
+            const nameInput = document.getElementById('nameSearch');
+            nameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchByName();
+                }
+            });
+            
+            // Division search
+            const divisionInput = document.getElementById('divisionSearch');
+            divisionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchByDivision();
+                }
+            });
+            
+            // Multiple PRN search
             const multiPRNInput = document.getElementById('multiPRNSearch');
             let searchTimeout;
             
@@ -1085,19 +1204,7 @@ ASH Department`
                     }
                 }, 100);
             });
-            
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(event) {
-                const dropdown = document.getElementById('emailDropdown');
-                const button = document.getElementById('emailDraftBtn');
-                if (!dropdown.contains(event.target) && !button.contains(event.target)) {
-                    dropdown.classList.remove('show');
-                }
-            });
-            
-            // Initialize export button as disabled
-            disableExportButton();
-        });
+        }
         
         // Handle login
         function handleLogin(event) {
@@ -1216,7 +1323,6 @@ ASH Department`
                     });
                     
                     // Initialize DataTable but don't show all data initially
-                    // We'll show only after search
                     displayedStudents = [];
                     updateStats();
                     
@@ -1224,8 +1330,8 @@ ASH Department`
                     document.getElementById('noResultsMessage').style.display = 'block';
                     document.getElementById('noResultsMessage').innerHTML = `
                         <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5>Search Students by PRN</h5>
-                        <p class="text-muted">Enter PRNs in the search box above to find students.</p>
+                        <h5>Search Students</h5>
+                        <p class="text-muted">Use the search options above to find students.</p>
                         <p class="text-muted small">Search results will be displayed here and available for export.</p>
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle"></i> 
@@ -1375,6 +1481,141 @@ ASH Department`
             document.getElementById('exportRestrictionNote').style.display = 'block';
         }
         
+        // Search by single PRN
+        function searchSinglePRN() {
+            const prn = document.getElementById('singlePRNSearch').value.trim();
+            
+            if (!prn) {
+                showNotification('Please enter a PRN to search.', 'error');
+                return;
+            }
+            
+            // Set flag that search has been performed
+            hasPerformedSearch = true;
+            
+            // Clear other search fields
+            clearOtherSearchFields('singlePRN');
+            
+            // Reset selected students
+            selectedStudents.clear();
+            updateSelectedCount();
+            
+            // Store search criteria
+            lastSearchCriteria = `Single PRN: ${prn}`;
+            
+            // Filter students based on PRN
+            const filteredStudents = allStudents.filter(student => {
+                const studentPRN = (student.PRN || student.prn || '').toString().trim().toLowerCase();
+                const searchPRN = prn.toLowerCase();
+                return studentPRN.includes(searchPRN) || studentPRN === searchPRN;
+            });
+            
+            console.log(`Found ${filteredStudents.length} students for PRN: ${prn}`);
+            
+            // Display filtered students
+            initDataTable(filteredStudents);
+            document.getElementById('searchResults').textContent = filteredStudents.length;
+            document.getElementById('searchResultsCount').textContent = filteredStudents.length;
+            
+            if (filteredStudents.length > 0) {
+                showNotification(`Found ${filteredStudents.length} student(s) for PRN: ${prn}`, 'success');
+                enableExportButton();
+            } else {
+                showNotification(`No students found for PRN: ${prn}`, 'error');
+                disableExportButton();
+            }
+        }
+        
+        // Search by name
+        function searchByName() {
+            const name = document.getElementById('nameSearch').value.trim();
+            
+            if (!name) {
+                showNotification('Please enter a name to search.', 'error');
+                return;
+            }
+            
+            // Set flag that search has been performed
+            hasPerformedSearch = true;
+            
+            // Clear other search fields
+            clearOtherSearchFields('name');
+            
+            // Reset selected students
+            selectedStudents.clear();
+            updateSelectedCount();
+            
+            // Store search criteria
+            lastSearchCriteria = `Name: ${name}`;
+            
+            // Filter students based on name (case-insensitive partial match)
+            const filteredStudents = allStudents.filter(student => {
+                const studentName = (student['Student Name'] || student.name || '').toString().trim().toLowerCase();
+                const searchName = name.toLowerCase();
+                return studentName.includes(searchName);
+            });
+            
+            console.log(`Found ${filteredStudents.length} students for name: ${name}`);
+            
+            // Display filtered students
+            initDataTable(filteredStudents);
+            document.getElementById('searchResults').textContent = filteredStudents.length;
+            document.getElementById('searchResultsCount').textContent = filteredStudents.length;
+            
+            if (filteredStudents.length > 0) {
+                showNotification(`Found ${filteredStudents.length} student(s) for name: ${name}`, 'success');
+                enableExportButton();
+            } else {
+                showNotification(`No students found for name: ${name}`, 'error');
+                disableExportButton();
+            }
+        }
+        
+        // Search by division
+        function searchByDivision() {
+            const division = document.getElementById('divisionSearch').value.trim();
+            
+            if (!division) {
+                showNotification('Please enter a division to search.', 'error');
+                return;
+            }
+            
+            // Set flag that search has been performed
+            hasPerformedSearch = true;
+            
+            // Clear other search fields
+            clearOtherSearchFields('division');
+            
+            // Reset selected students
+            selectedStudents.clear();
+            updateSelectedCount();
+            
+            // Store search criteria
+            lastSearchCriteria = `Division: ${division}`;
+            
+            // Filter students based on division (case-insensitive)
+            const filteredStudents = allStudents.filter(student => {
+                const studentDivision = (student.division || student['Division'] || '').toString().trim().toUpperCase();
+                const searchDivision = division.toUpperCase();
+                return studentDivision === searchDivision;
+            });
+            
+            console.log(`Found ${filteredStudents.length} students for division: ${division}`);
+            
+            // Display filtered students
+            initDataTable(filteredStudents);
+            document.getElementById('searchResults').textContent = filteredStudents.length;
+            document.getElementById('searchResultsCount').textContent = filteredStudents.length;
+            
+            if (filteredStudents.length > 0) {
+                showNotification(`Found ${filteredStudents.length} student(s) for division: ${division}`, 'success');
+                enableExportButton();
+            } else {
+                showNotification(`No students found for division: ${division}`, 'error');
+                disableExportButton();
+            }
+        }
+        
         // Search multiple PRNs
         function searchMultiplePRNs() {
             const multiPRNInput = document.getElementById('multiPRNSearch').value.trim();
@@ -1384,29 +1625,15 @@ ASH Department`
             updateSelectedCount();
             
             if (!multiPRNInput) {
-                // Clear search and show initial message
-                hasPerformedSearch = false;
-                displayedStudents = [];
-                updateStats();
-                document.getElementById('noResultsMessage').style.display = 'block';
-                document.getElementById('noResultsMessage').innerHTML = `
-                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                    <h5>Search Students by PRN</h5>
-                    <p class="text-muted">Enter PRNs in the search box above to find students.</p>
-                    <p class="text-muted small">Search results will be displayed here and available for export.</p>
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle"></i> 
-                        <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
-                    </div>
-                `;
-                document.getElementById('studentTable').style.display = 'none';
-                document.getElementById('prnBadgesContainer').style.display = 'none';
-                disableExportButton();
+                showNotification('Please enter PRNs to search.', 'error');
                 return;
             }
             
             // Set flag that search has been performed
             hasPerformedSearch = true;
+            
+            // Clear other search fields
+            clearOtherSearchFields('multiPRN');
             
             // Parse PRNs with multiple separators
             const prnList = parsePRNInput(multiPRNInput);
@@ -1468,6 +1695,23 @@ ASH Department`
             }
         }
         
+        // Clear other search fields when performing a specific search
+        function clearOtherSearchFields(currentField) {
+            if (currentField !== 'singlePRN') {
+                document.getElementById('singlePRNSearch').value = '';
+            }
+            if (currentField !== 'name') {
+                document.getElementById('nameSearch').value = '';
+            }
+            if (currentField !== 'division') {
+                document.getElementById('divisionSearch').value = '';
+            }
+            if (currentField !== 'multiPRN') {
+                document.getElementById('multiPRNSearch').value = '';
+                document.getElementById('prnBadgesContainer').style.display = 'none';
+            }
+        }
+        
         // Parse PRN input with multiple separators
         function parsePRNInput(input) {
             if (!input) return [];
@@ -1497,7 +1741,7 @@ ASH Department`
             
             const exportBtn = document.getElementById('exportSearchResultsBtn');
             if (exportBtn.disabled) {
-                showNotification('Export is only available for search results. Please search for specific PRNs first.', 'error');
+                showNotification('Export is only available for search results. Please search first.', 'error');
                 return;
             }
             
@@ -1697,7 +1941,12 @@ ASH Department`
         
         // Clear search
         function clearSearch() {
+            // Clear all search fields
+            document.getElementById('singlePRNSearch').value = '';
+            document.getElementById('nameSearch').value = '';
+            document.getElementById('divisionSearch').value = '';
             document.getElementById('multiPRNSearch').value = '';
+            
             selectedStudents.clear();
             hasPerformedSearch = false;
             
@@ -1708,8 +1957,8 @@ ASH Department`
             document.getElementById('noResultsMessage').style.display = 'block';
             document.getElementById('noResultsMessage').innerHTML = `
                 <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h5>Search Students by PRN</h5>
-                <p class="text-muted">Enter PRNs in the search box above to find students.</p>
+                <h5>Search Students</h5>
+                <p class="text-muted">Use the search options above to find students.</p>
                 <p class="text-muted small">Search results will be displayed here and available for export.</p>
                 <div class="alert alert-info mt-3">
                     <i class="fas fa-info-circle"></i> 
