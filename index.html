@@ -911,32 +911,15 @@
                 </div>
             </div>
             
-            <!-- Division Dropdown -->
+            <!-- Division -->
             <div class="search-option-group">
                 <div class="search-section-title">
                     <i class="fas fa-users"></i> Division
                 </div>
                 <div class="row g-3">
                     <div class="col-md-10">
-                        <select class="form-control" id="divisionSearch">
-                            <option value="">Select Division</option>
-                            <option value="FY A">FY A</option>
-                            <option value="FY B">FY B</option>
-                            <option value="FY C">FY C</option>
-                            <option value="FY D">FY D</option>
-                            <option value="FY E">FY E</option>
-                            <option value="FY F">FY F</option>
-                            <option value="FY G">FY G</option>
-                            <option value="FY H">FY H</option>
-                            <option value="FY I">FY I</option>
-                            <option value="FY J">FY J</option>
-                            <option value="FY K">FY K</option>
-                            <option value="FY L">FY L</option>
-                            <option value="FY M">FY M</option>
-                            <option value="FY N">FY N</option>
-                            <option value="FY O">FY O</option>
-                            <option value="FY P">FY P</option>
-                        </select>
+                        <input type="text" class="form-control" id="divisionSearch" 
+                               placeholder="e.g., A, B">
                     </div>
                     <div class="col-md-2">
                         <button class="btn search-btn w-100" onclick="searchByDivision()">
@@ -1131,7 +1114,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.7.0/min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1382,10 +1365,10 @@ ASH Department - PCCOE`
                 }
             });
             
-            // Division search (dropdown) - listen for change event
+            // Division search
             const divisionInput = document.getElementById('divisionSearch');
-            divisionInput.addEventListener('change', function(e) {
-                if (this.value) {
+            divisionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
                     searchByDivision();
                 }
             });
@@ -1834,7 +1817,7 @@ ASH Department - PCCOE`
             const division = document.getElementById('divisionSearch').value.trim();
             
             if (!division) {
-                showNotification('Please select a division to search.', 'error');
+                showNotification('Please enter a division to search.', 'error');
                 return;
             }
             
@@ -1851,13 +1834,10 @@ ASH Department - PCCOE`
             // Store search criteria
             lastSearchCriteria = `Division: ${division}`;
             
-            // Extract the division letter (e.g., "A" from "FY A")
-            const divisionLetter = division.split(' ')[1] || division;
-            
             // Filter students based on division (case-insensitive)
             const filteredStudents = allStudents.filter(student => {
                 const studentDivision = (student['Division'] || '').toString().trim().toUpperCase();
-                const searchDivision = divisionLetter.toUpperCase();
+                const searchDivision = division.toUpperCase();
                 return studentDivision === searchDivision;
             });
             
