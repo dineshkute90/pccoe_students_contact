@@ -1520,7 +1520,7 @@ ASH Department - PCCOE`
                         student['Parent Email ID'] = student['Parent Email ID'] || '';
                     });
                     
-                    // Display all students on home page (CHANGE: Show all data initially)
+                    // Display all students on home page (as per requirement a)
                     displayedStudents = [...allStudents];
                     initDataTable(displayedStudents);
                     
@@ -1534,9 +1534,27 @@ ASH Department - PCCOE`
                         `;
                     } else {
                         document.getElementById('noResultsMessage').style.display = 'none';
-                        // Enable export since we're showing all data
-                        hasPerformedSearch = true;
-                        enableExportButton();
+                        
+                        // IMPORTANT: Disable export for complete dataset as per requirement
+                        // Export should only be enabled for search results
+                        disableExportButton();
+                        hasPerformedSearch = false;
+                        
+                        // Update search results count to show total students
+                        document.getElementById('searchResults').textContent = allStudents.length;
+                        document.getElementById('searchResultsCount').textContent = allStudents.length;
+                        
+                        // Update the no results message to indicate that data is shown
+                        document.getElementById('noResultsMessage').innerHTML = `
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5>Search Students</h5>
+                            <p class="text-muted">Use the search options above to find students.</p>
+                            <p class="text-muted small">Search results will be displayed here and available for selection and email sending.</p>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i> 
+                                <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
+                            </div>
+                        `;
                     }
                 } else {
                     throw new Error(data.error || 'Failed to load data');
@@ -1666,7 +1684,7 @@ ASH Department - PCCOE`
             updateSelectedCount();
             updateSelectAllCheckbox();
             
-            // Enable export button if we have search results
+            // Enable export button ONLY if we have search results (not for complete dataset)
             if (hasPerformedSearch && displayedStudents.length > 0) {
                 enableExportButton();
             } else {
@@ -2220,23 +2238,21 @@ ASH Department - PCCOE`
             document.getElementById('multiPRNSearch').value = '';
             
             selectedStudents.clear();
-            hasPerformedSearch = false;
             
-            // Reset to initial state - show all data
+            // IMPORTANT: Reset to initial state - show all data but disable export
+            hasPerformedSearch = false;
             displayedStudents = [...allStudents];
             initDataTable(displayedStudents);
             
+            // Reset search results to show total count but disable export
             document.getElementById('searchResults').textContent = displayedStudents.length;
             document.getElementById('searchResultsCount').textContent = displayedStudents.length;
             document.getElementById('prnBadgesContainer').style.display = 'none';
             
-            if (displayedStudents.length > 0) {
-                // Enable export since we're showing all data
-                hasPerformedSearch = true;
-                enableExportButton();
-            }
+            // Disable export since we're showing complete dataset
+            disableExportButton();
             
-            showNotification('Search cleared, showing all students', 'success');
+            showNotification('Search cleared, showing all students. Export is disabled for complete dataset.', 'info');
         }
         
         // Update statistics
