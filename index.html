@@ -657,6 +657,63 @@
             letter-spacing: 0.5px;
         }
         
+        /* Column Selection Styles */
+        .column-selector {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .column-selector-title {
+            font-weight: 600;
+            color: var(--pccoe-blue);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .column-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .column-checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .column-checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .column-checkbox-group label {
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-columns-btn {
+            background: #5c6bc0;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle-columns-btn:hover {
+            background: #3949ab;
+        }
+        
         @media (max-width: 768px) {
             .directory-header {
                 flex-direction: column;
@@ -694,6 +751,11 @@
             .logout-btn {
                 margin-top: 10px;
                 margin-left: 0;
+            }
+            
+            .column-checkboxes {
+                flex-direction: column;
+                gap: 8px;
             }
         }
         
@@ -796,6 +858,19 @@
             <a class="logout-btn" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
+        </div>
+        
+        <!-- Column Selector -->
+        <div class="column-selector">
+            <div class="column-selector-title">
+                <span><i class="fas fa-columns"></i> Select Columns to Display</span>
+                <button class="toggle-columns-btn" onclick="toggleAllColumns()">
+                    <i class="fas fa-check-double"></i> Toggle All
+                </button>
+            </div>
+            <div class="column-checkboxes" id="columnCheckboxes">
+                <!-- Checkboxes will be added dynamically -->
+            </div>
         </div>
         
         <!-- Search Section -->
@@ -939,6 +1014,9 @@
                         <a class="email-dropdown-item" onclick="sendEmailWithDraft('faSchedule')">
                             <i class="fas fa-calendar-alt"></i> FA Schedule Email
                         </a>
+                        <a class="email-dropdown-item" onclick="sendEmailToParent()">
+                            <i class="fas fa-user-friends"></i> Mail to Parent
+                        </a>
                         <a class="email-dropdown-item" onclick="sendEmailWithDraft('custom')">
                             <i class="fas fa-edit"></i> Custom Email
                         </a>
@@ -1015,7 +1093,9 @@
                         <th>Parent Mobile</th>
                         <th>Email ID</th>
                         <th>Branch</th>
+                        <th>Batches</th>
                         <th>Division</th>
+                        <th>Parent Email ID</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1104,6 +1184,17 @@ ASH Department – Examination Section`
 
 Best regards,
 ASH Department`
+            },
+            parentEmail: {
+                subject: "Important Information for Parents",
+                body: `Respected Parents,
+
+[Your message to parents here]
+
+We appreciate your support in your child's education.
+
+Best regards,
+ASH Department - PCCOE`
             }
         };
         
@@ -1115,6 +1206,19 @@ ASH Department`
         let isAdmin = false;
         let loadingModal = null;
         let hasPerformedSearch = false; // Flag to track if search has been performed
+        let columnVisibility = {
+            'Sr. No.': true,
+            'Offering Year': true,
+            'PRN': true,
+            'Student Name': true,
+            'Student Mobile': true,
+            'Parent Mobile': true,
+            'Email ID': true,
+            'Branch': true,
+            'Batches': true,
+            'Division': true,
+            'Parent Email ID': true
+        };
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -1140,6 +1244,9 @@ ASH Department`
             // Setup search inputs
             setupSearchInputs();
             
+            // Setup column checkboxes
+            setupColumnCheckboxes();
+            
             // Close dropdown when clicking outside
             document.addEventListener('click', function(event) {
                 const dropdown = document.getElementById('emailDropdown');
@@ -1152,6 +1259,93 @@ ASH Department`
             // Initialize export button as disabled
             disableExportButton();
         });
+        
+        // Setup column checkboxes
+        function setupColumnCheckboxes() {
+            const columnCheckboxes = document.getElementById('columnCheckboxes');
+            const columns = [
+                { id: 'sr_no', label: 'Sr. No.', checked: true },
+                { id: 'offering_year', label: 'Offering Year', checked: true },
+                { id: 'prn', label: 'PRN', checked: true },
+                { id: 'student_name', label: 'Student Name', checked: true },
+                { id: 'student_mobile', label: 'Student Mobile', checked: true },
+                { id: 'parent_mobile', label: 'Parent Mobile', checked: true },
+                { id: 'email_id', label: 'Email ID', checked: true },
+                { id: 'branch', label: 'Branch', checked: true },
+                { id: 'batches', label: 'Batches', checked: true },
+                { id: 'division', label: 'Division', checked: true },
+                { id: 'parent_email_id', label: 'Parent Email ID', checked: true }
+            ];
+            
+            columns.forEach(column => {
+                const checkboxGroup = document.createElement('div');
+                checkboxGroup.className = 'column-checkbox-group';
+                checkboxGroup.innerHTML = `
+                    <input type="checkbox" id="${column.id}" ${column.checked ? 'checked' : ''} 
+                           onchange="toggleColumn('${column.id}', '${column.label}')">
+                    <label for="${column.id}">${column.label}</label>
+                `;
+                columnCheckboxes.appendChild(checkboxGroup);
+            });
+        }
+        
+        // Toggle column visibility
+        function toggleColumn(columnId, columnLabel) {
+            const checkbox = document.getElementById(columnId);
+            columnVisibility[columnLabel] = checkbox.checked;
+            
+            if (dataTable) {
+                const columnIndex = getColumnIndex(columnLabel);
+                if (columnIndex !== -1) {
+                    dataTable.column(columnIndex).visible(checkbox.checked);
+                }
+            }
+        }
+        
+        // Toggle all columns
+        function toggleAllColumns() {
+            const allChecked = Object.values(columnVisibility).every(v => v);
+            const newState = !allChecked;
+            
+            // Update visibility object
+            Object.keys(columnVisibility).forEach(key => {
+                columnVisibility[key] = newState;
+            });
+            
+            // Update checkboxes
+            const checkboxes = document.querySelectorAll('.column-checkbox-group input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = newState;
+            });
+            
+            // Update DataTable
+            if (dataTable) {
+                Object.keys(columnVisibility).forEach((columnLabel, index) => {
+                    const columnIndex = getColumnIndex(columnLabel);
+                    if (columnIndex !== -1) {
+                        dataTable.column(columnIndex).visible(newState);
+                    }
+                });
+            }
+        }
+        
+        // Get column index by label
+        function getColumnIndex(columnLabel) {
+            const columnMap = {
+                'Sr. No.': 1,
+                'Offering Year': 2,
+                'PRN': 3,
+                'Student Name': 4,
+                'Student Mobile': 5,
+                'Parent Mobile': 6,
+                'Email ID': 7,
+                'Branch': 8,
+                'Batches': 9,
+                'Division': 10,
+                'Parent Email ID': 11
+            };
+            return columnMap[columnLabel] || -1;
+        }
         
         // Setup search inputs with event listeners
         function setupSearchInputs() {
@@ -1320,24 +1514,30 @@ ASH Department`
                     allStudents.forEach((student, index) => {
                         student._id = index;
                         student._selected = false;
+                        // Ensure all required fields exist
+                        student['Batches'] = student['Batches'] || '';
+                        student['Division'] = student['Division'] || '';
+                        student['Parent Email ID'] = student['Parent Email ID'] || '';
                     });
                     
-                    // Initialize DataTable but don't show all data initially
-                    displayedStudents = [];
-                    updateStats();
+                    // Display all students on home page (CHANGE: Show all data initially)
+                    displayedStudents = [...allStudents];
+                    initDataTable(displayedStudents);
                     
-                    // Show initial message
-                    document.getElementById('noResultsMessage').style.display = 'block';
-                    document.getElementById('noResultsMessage').innerHTML = `
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5>Search Students</h5>
-                        <p class="text-muted">Use the search options above to find students.</p>
-                        <p class="text-muted small">Search results will be displayed here and available for export.</p>
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle"></i> 
-                            <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
-                        </div>
-                    `;
+                    // Show initial message if no data
+                    if (allStudents.length === 0) {
+                        document.getElementById('noResultsMessage').style.display = 'block';
+                        document.getElementById('noResultsMessage').innerHTML = `
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h5>No Student Data Available</h5>
+                            <p class="text-muted">No student records were found in the database.</p>
+                        `;
+                    } else {
+                        document.getElementById('noResultsMessage').style.display = 'none';
+                        // Enable export since we're showing all data
+                        hasPerformedSearch = true;
+                        enableExportButton();
+                    }
                 } else {
                     throw new Error(data.error || 'Failed to load data');
                 }
@@ -1415,7 +1615,22 @@ ASH Department`
                             </div>
                         </td>
                         <td>${student.branch || student['Branch'] || ''}</td>
-                        <td>${student.division || student['Division'] || ''}</td>
+                        <td>${student['Batches'] || ''}</td>
+                        <td>${student['Division'] || ''}</td>
+                        <td>
+                            <div class="email-container">
+                                <div class="email-text">
+                                    <i class="fas fa-envelope text-info me-1"></i>${student['Parent Email ID'] || ''}
+                                </div>
+                                ${student['Parent Email ID'] ? `
+                                <div class="d-flex gap-1">
+                                    <button class="copy-icon-btn" onclick="copyToClipboard('${student['Parent Email ID']}', 'Parent Email address')" title="Copy Parent Email">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </td>
                     </tr>
                 `;
                 tableBody.append(row);
@@ -1434,6 +1649,14 @@ ASH Department`
                 columnDefs: [
                     { orderable: false, targets: 0 } // Disable sorting for checkbox column
                 ]
+            });
+            
+            // Apply column visibility
+            Object.keys(columnVisibility).forEach((columnLabel, index) => {
+                const columnIndex = getColumnIndex(columnLabel);
+                if (columnIndex !== -1) {
+                    dataTable.column(columnIndex).visible(columnVisibility[columnLabel]);
+                }
             });
             
             document.getElementById('studentTable').style.display = 'table';
@@ -1595,7 +1818,7 @@ ASH Department`
             
             // Filter students based on division (case-insensitive)
             const filteredStudents = allStudents.filter(student => {
-                const studentDivision = (student.division || student['Division'] || '').toString().trim().toUpperCase();
+                const studentDivision = (student['Division'] || '').toString().trim().toUpperCase();
                 const searchDivision = division.toUpperCase();
                 return studentDivision === searchDivision;
             });
@@ -1764,7 +1987,7 @@ ASH Department`
                 ['Search Criteria: ' + lastSearchCriteria],
                 ['Total Records: ' + displayedStudents.length],
                 [''], // Empty row
-                ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Division']
+                ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Batches', 'Division', 'Parent Email ID']
             ];
             
             // Add student data
@@ -1778,7 +2001,9 @@ ASH Department`
                     student['Parent Mobile'] || student.parent_mobile || '',
                     student['Email ID'] || student.email || '',
                     student.branch || student['Branch'] || '',
-                    student.division || student['Division'] || ''
+                    student['Batches'] || '',
+                    student['Division'] || '',
+                    student['Parent Email ID'] || ''
                 ]);
             });
             
@@ -1796,7 +2021,9 @@ ASH Department`
                 { wch: 15 },  // Parent Mobile
                 { wch: 30 },  // Email ID
                 { wch: 15 },  // Branch
-                { wch: 10 }   // Division
+                { wch: 10 },  // Batches
+                { wch: 10 },  // Division
+                { wch: 30 }   // Parent Email ID
             ];
             worksheet['!cols'] = colWidths;
             
@@ -1810,6 +2037,97 @@ ASH Department`
                 console.error('Export error:', error);
                 showNotification('Error exporting file. Please try again.', 'error');
             }
+        }
+        
+        // Send email to parent
+        function sendEmailToParent() {
+            if (selectedStudents.size === 0) {
+                showNotification('Please select at least one student to send email to parent.', 'error');
+                return;
+            }
+            
+            // Get selected students' parent emails
+            const selectedParentEmails = [];
+            const selectedStudentNames = [];
+            
+            allStudents.forEach(student => {
+                if (selectedStudents.has(student._id)) {
+                    const parentEmail = student['Parent Email ID'] || '';
+                    if (parentEmail) {
+                        selectedParentEmails.push(parentEmail);
+                        selectedStudentNames.push(student['Student Name'] || student.name || '');
+                    }
+                }
+            });
+            
+            if (selectedParentEmails.length === 0) {
+                showNotification('No parent email addresses found for selected students.', 'error');
+                return;
+            }
+            
+            // Get email draft for parents
+            const draft = EMAIL_DRAFTS.parentEmail;
+            
+            // Create Gmail URL with recipients, subject, and body
+            const emailString = selectedParentEmails.join(',');
+            const subject = encodeURIComponent(draft.subject);
+            const body = encodeURIComponent(draft.body);
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailString}&su=${subject}&body=${body}`;
+            
+            // Open Gmail in new tab
+            window.open(gmailUrl, '_blank');
+            
+            // Close dropdown
+            document.getElementById('emailDropdown').classList.remove('show');
+            
+            // Show confirmation
+            showNotification(`Opening Gmail with ${selectedParentEmails.length} parent email(s)`, 'success');
+        }
+        
+        // Send email with selected draft
+        function sendEmailWithDraft(draftType) {
+            if (selectedStudents.size === 0) {
+                showNotification('Please select at least one student to send email.', 'error');
+                return;
+            }
+            
+            // Get selected students' emails
+            const selectedEmails = [];
+            allStudents.forEach(student => {
+                if (selectedStudents.has(student._id)) {
+                    const email = student['Email ID'] || student.email || '';
+                    if (email) {
+                        selectedEmails.push(email);
+                    }
+                }
+            });
+            
+            if (selectedEmails.length === 0) {
+                showNotification('No valid email addresses found for selected students.', 'error');
+                return;
+            }
+            
+            // Get email draft
+            const draft = EMAIL_DRAFTS[draftType];
+            if (!draft) {
+                showNotification('Email draft not found.', 'error');
+                return;
+            }
+            
+            // Create Gmail URL with recipients, subject, and body
+            const emailString = selectedEmails.join(',');
+            const subject = encodeURIComponent(draft.subject);
+            const body = encodeURIComponent(draft.body);
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailString}&su=${subject}&body=${body}`;
+            
+            // Open Gmail in new tab
+            window.open(gmailUrl, '_blank');
+            
+            // Close dropdown
+            document.getElementById('emailDropdown').classList.remove('show');
+            
+            // Show confirmation
+            showNotification(`Opening Gmail with ${selectedEmails.length} recipient(s) using ${draftType} draft`, 'success');
         }
         
         // Toggle student selection
@@ -1893,52 +2211,6 @@ ASH Department`
             dropdown.classList.toggle('show');
         }
         
-        // Send email with selected draft
-        function sendEmailWithDraft(draftType) {
-            if (selectedStudents.size === 0) {
-                showNotification('Please select at least one student to send email.', 'error');
-                return;
-            }
-            
-            // Get selected students' emails
-            const selectedEmails = [];
-            allStudents.forEach(student => {
-                if (selectedStudents.has(student._id)) {
-                    const email = student['Email ID'] || student.email || '';
-                    if (email) {
-                        selectedEmails.push(email);
-                    }
-                }
-            });
-            
-            if (selectedEmails.length === 0) {
-                showNotification('No valid email addresses found for selected students.', 'error');
-                return;
-            }
-            
-            // Get email draft
-            const draft = EMAIL_DRAFTS[draftType];
-            if (!draft) {
-                showNotification('Email draft not found.', 'error');
-                return;
-            }
-            
-            // Create Gmail URL with recipients, subject, and body
-            const emailString = selectedEmails.join(',');
-            const subject = encodeURIComponent(draft.subject);
-            const body = encodeURIComponent(draft.body);
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailString}&su=${subject}&body=${body}`;
-            
-            // Open Gmail in new tab
-            window.open(gmailUrl, '_blank');
-            
-            // Close dropdown
-            document.getElementById('emailDropdown').classList.remove('show');
-            
-            // Show confirmation
-            showNotification(`Opening Gmail with ${selectedEmails.length} recipient(s) using ${draftType} draft`, 'success');
-        }
-        
         // Clear search
         function clearSearch() {
             // Clear all search fields
@@ -1950,28 +2222,21 @@ ASH Department`
             selectedStudents.clear();
             hasPerformedSearch = false;
             
-            // Reset to initial state
-            displayedStudents = [];
-            updateStats();
+            // Reset to initial state - show all data
+            displayedStudents = [...allStudents];
+            initDataTable(displayedStudents);
             
-            document.getElementById('noResultsMessage').style.display = 'block';
-            document.getElementById('noResultsMessage').innerHTML = `
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h5>Search Students</h5>
-                <p class="text-muted">Use the search options above to find students.</p>
-                <p class="text-muted small">Search results will be displayed here and available for export.</p>
-                <div class="alert alert-info mt-3">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
-                </div>
-            `;
-            
-            document.getElementById('studentTable').style.display = 'none';
-            document.getElementById('searchResults').textContent = '0';
-            document.getElementById('searchResultsCount').textContent = '0';
+            document.getElementById('searchResults').textContent = displayedStudents.length;
+            document.getElementById('searchResultsCount').textContent = displayedStudents.length;
             document.getElementById('prnBadgesContainer').style.display = 'none';
-            disableExportButton();
-            showNotification('Search cleared', 'success');
+            
+            if (displayedStudents.length > 0) {
+                // Enable export since we're showing all data
+                hasPerformedSearch = true;
+                enableExportButton();
+            }
+            
+            showNotification('Search cleared, showing all students', 'success');
         }
         
         // Update statistics
