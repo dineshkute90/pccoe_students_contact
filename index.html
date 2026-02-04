@@ -911,15 +911,32 @@
                 </div>
             </div>
             
-            <!-- Division -->
+            <!-- Division Dropdown -->
             <div class="search-option-group">
                 <div class="search-section-title">
                     <i class="fas fa-users"></i> Division
                 </div>
                 <div class="row g-3">
                     <div class="col-md-10">
-                        <input type="text" class="form-control" id="divisionSearch" 
-                               placeholder="e.g., A, B">
+                        <select class="form-control" id="divisionSearch">
+                            <option value="">Select Division</option>
+                            <option value="A">FY A</option>
+                            <option value="B">FY B</option>
+                            <option value="C">FY C</option>
+                            <option value="D">FY D</option>
+                            <option value="E">FY E</option>
+                            <option value="F">FY F</option>
+                            <option value="G">FY G</option>
+                            <option value="H">FY H</option>
+                            <option value="I">FY I</option>
+                            <option value="J">FY J</option>
+                            <option value="K">FY K</option>
+                            <option value="L">FY L</option>
+                            <option value="M">FY M</option>
+                            <option value="N">FY N</option>
+                            <option value="O">FY O</option>
+                            <option value="P">FY P</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <button class="btn search-btn w-100" onclick="searchByDivision()">
@@ -1127,10 +1144,147 @@
             'admin': 'pccoe@admin'        // Admin user
         };
         
-        // Apps Script URL
+        // Apps Script URL - UPDATE THIS WITH YOUR DEPLOYED URL
         const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz95lLcZPbBzRJHsbcWUgxdxeH-dSijKeoUxUzcAI3iyNiNce_7TUGNIMo1uWs50xhE1g/exec';
         
-        // Email Drafts with updated FA Schedule
+        // Fallback demo data
+        const DEMO_DATA = {
+            success: true,
+            students: [
+                {
+                    "Sr. No.": "1",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G035",
+                    "Student Name": "John Doe",
+                    "Student Mobile": "9876543210",
+                    "Parent Mobile": "9123456789",
+                    "Email ID": "john.doe@pccegoa.edu.in",
+                    "Branch": "Computer Engineering",
+                    "Batches": "A1",
+                    "Division": "A",
+                    "Parent Email ID": "parent.john@email.com"
+                },
+                {
+                    "Sr. No.": "2",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G036",
+                    "Student Name": "Jane Smith",
+                    "Student Mobile": "9876543211",
+                    "Parent Mobile": "9123456790",
+                    "Email ID": "jane.smith@pccegoa.edu.in",
+                    "Branch": "IT Engineering",
+                    "Batches": "B1",
+                    "Division": "B",
+                    "Parent Email ID": "parent.jane@email.com"
+                },
+                {
+                    "Sr. No.": "3",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G037",
+                    "Student Name": "Raj Patel",
+                    "Student Mobile": "9876543212",
+                    "Parent Mobile": "9123456791",
+                    "Email ID": "raj.patel@pccegoa.edu.in",
+                    "Branch": "Mechanical Engineering",
+                    "Batches": "C1",
+                    "Division": "C",
+                    "Parent Email ID": "parent.raj@email.com"
+                },
+                {
+                    "Sr. No.": "4",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G038",
+                    "Student Name": "Priya Sharma",
+                    "Student Mobile": "9876543213",
+                    "Parent Mobile": "9123456792",
+                    "Email ID": "priya.sharma@pccegoa.edu.in",
+                    "Branch": "Civil Engineering",
+                    "Batches": "D1",
+                    "Division": "D",
+                    "Parent Email ID": "parent.priya@email.com"
+                },
+                {
+                    "Sr. No.": "5",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G039",
+                    "Student Name": "Amit Kumar",
+                    "Student Mobile": "9876543214",
+                    "Parent Mobile": "9123456793",
+                    "Email ID": "amit.kumar@pccegoa.edu.in",
+                    "Branch": "Electrical Engineering",
+                    "Batches": "E1",
+                    "Division": "E",
+                    "Parent Email ID": "parent.amit@email.com"
+                },
+                {
+                    "Sr. No.": "6",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G040",
+                    "Student Name": "Sneha Desai",
+                    "Student Mobile": "9876543215",
+                    "Parent Mobile": "9123456794",
+                    "Email ID": "sneha.desai@pccegoa.edu.in",
+                    "Branch": "Computer Engineering",
+                    "Batches": "F1",
+                    "Division": "F",
+                    "Parent Email ID": "parent.sneha@email.com"
+                },
+                {
+                    "Sr. No.": "7",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G041",
+                    "Student Name": "Rohan Verma",
+                    "Student Mobile": "9876543216",
+                    "Parent Mobile": "9123456795",
+                    "Email ID": "rohan.verma@pccegoa.edu.in",
+                    "Branch": "IT Engineering",
+                    "Batches": "G1",
+                    "Division": "G",
+                    "Parent Email ID": "parent.rohan@email.com"
+                },
+                {
+                    "Sr. No.": "8",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G042",
+                    "Student Name": "Neha Gupta",
+                    "Student Mobile": "9876543217",
+                    "Parent Mobile": "9123456796",
+                    "Email ID": "neha.gupta@pccegoa.edu.in",
+                    "Branch": "Mechanical Engineering",
+                    "Batches": "H1",
+                    "Division": "H",
+                    "Parent Email ID": "parent.neha@email.com"
+                },
+                {
+                    "Sr. No.": "9",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G043",
+                    "Student Name": "Vikram Singh",
+                    "Student Mobile": "9876543218",
+                    "Parent Mobile": "9123456797",
+                    "Email ID": "vikram.singh@pccegoa.edu.in",
+                    "Branch": "Civil Engineering",
+                    "Batches": "I1",
+                    "Division": "I",
+                    "Parent Email ID": "parent.vikram@email.com"
+                },
+                {
+                    "Sr. No.": "10",
+                    "Offering Year": "2025-26",
+                    "PRN": "123B1G044",
+                    "Student Name": "Pooja Mehta",
+                    "Student Mobile": "9876543219",
+                    "Parent Mobile": "9123456798",
+                    "Email ID": "pooja.mehta@pccegoa.edu.in",
+                    "Branch": "Electrical Engineering",
+                    "Batches": "J1",
+                    "Division": "J",
+                    "Parent Email ID": "parent.pooja@email.com"
+                }
+            ]
+        };
+        
+        // Email Drafts
         const EMAIL_DRAFTS = {
             openDay: {
                 subject: "Open Day Schedule for Examination",
@@ -1205,7 +1359,7 @@ ASH Department - PCCOE`
         let lastSearchCriteria = '';
         let isAdmin = false;
         let loadingModal = null;
-        let hasPerformedSearch = false; // Flag to track if search has been performed
+        let hasPerformedSearch = false;
         let columnVisibility = {
             'Sr. No.': true,
             'Offering Year': true,
@@ -1251,7 +1405,7 @@ ASH Department - PCCOE`
             document.addEventListener('click', function(event) {
                 const dropdown = document.getElementById('emailDropdown');
                 const button = document.getElementById('emailDraftBtn');
-                if (!dropdown.contains(event.target) && !button.contains(event.target)) {
+                if (dropdown && button && !dropdown.contains(event.target) && !button.contains(event.target)) {
                     dropdown.classList.remove('show');
                 }
             });
@@ -1365,10 +1519,10 @@ ASH Department - PCCOE`
                 }
             });
             
-            // Division search
+            // Division search - listen for change event
             const divisionInput = document.getElementById('divisionSearch');
-            divisionInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
+            divisionInput.addEventListener('change', function(e) {
+                if (this.value) {
                     searchByDivision();
                 }
             });
@@ -1496,17 +1650,33 @@ ASH Department - PCCOE`
             document.getElementById('loading').style.display = 'block';
             
             try {
-                console.log('Loading data from:', APP_SCRIPT_URL);
-                const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents`);
+                console.log('Attempting to load data from:', APP_SCRIPT_URL);
                 
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                // Try to fetch from Google Apps Script with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const response = await fetch(`${APP_SCRIPT_URL}?action=getStudents&timestamp=${Date.now()}`, {
+                    signal: controller.signal
+                }).catch(error => {
+                    console.warn('Fetch failed, using demo data:', error);
+                    return null;
+                });
+                
+                clearTimeout(timeoutId);
+                
+                let data;
+                
+                if (response && response.ok) {
+                    data = await response.json();
+                    console.log('Data received from server:', data);
+                } else {
+                    console.log('Using demo data instead');
+                    data = DEMO_DATA;
+                    showNotification('Connected to demo data. For live data, please check your Google Apps Script deployment.', 'info');
                 }
                 
-                const data = await response.json();
-                console.log('Data received:', data);
-                
-                if (data.success) {
+                if (data && data.success) {
                     allStudents = data.students || [];
                     console.log(`Loaded ${allStudents.length} students`);
                     
@@ -1520,7 +1690,7 @@ ASH Department - PCCOE`
                         student['Parent Email ID'] = student['Parent Email ID'] || '';
                     });
                     
-                    // Display all students on home page (as per requirement a)
+                    // Display all students on home page
                     displayedStudents = [...allStudents];
                     initDataTable(displayedStudents);
                     
@@ -1531,20 +1701,22 @@ ASH Department - PCCOE`
                             <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                             <h5>No Student Data Available</h5>
                             <p class="text-muted">No student records were found in the database.</p>
+                            <button class="btn btn-primary mt-3" onclick="loadData()">
+                                <i class="fas fa-redo"></i> Retry Loading Data
+                            </button>
                         `;
                     } else {
                         document.getElementById('noResultsMessage').style.display = 'none';
                         
-                        // IMPORTANT: Disable export for complete dataset as per requirement
-                        // Export should only be enabled for search results
+                        // Disable export for complete dataset
                         disableExportButton();
                         hasPerformedSearch = false;
                         
-                        // Update search results count to show total students
+                        // Update search results count
                         document.getElementById('searchResults').textContent = allStudents.length;
                         document.getElementById('searchResultsCount').textContent = allStudents.length;
                         
-                        // Update the no results message to indicate that data is shown
+                        // Update the no results message
                         document.getElementById('noResultsMessage').innerHTML = `
                             <i class="fas fa-search fa-3x text-muted mb-3"></i>
                             <h5>Search Students</h5>
@@ -1555,13 +1727,40 @@ ASH Department - PCCOE`
                                 <strong>Note:</strong> Export functionality is only available for search results, not the complete dataset.
                             </div>
                         `;
+                        
+                        showNotification(`Successfully loaded ${allStudents.length} student records`, 'success');
                     }
                 } else {
-                    throw new Error(data.error || 'Failed to load data');
+                    throw new Error(data?.error || 'Failed to load data from server');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                showNotification('Error loading data: ' + error.message, 'error');
+                console.error('Error loading data:', error);
+                
+                // Try using demo data as last resort
+                try {
+                    allStudents = DEMO_DATA.students || [];
+                    allStudents.forEach((student, index) => {
+                        student._id = index;
+                        student._selected = false;
+                    });
+                    displayedStudents = [...allStudents];
+                    initDataTable(displayedStudents);
+                    
+                    showNotification('Using demo data. Please check your Google Apps Script deployment for live data.', 'warning');
+                } catch (demoError) {
+                    console.error('Even demo data failed:', demoError);
+                    showNotification('Error loading data. Please check your internet connection and try again.', 'error');
+                    
+                    document.getElementById('noResultsMessage').style.display = 'block';
+                    document.getElementById('noResultsMessage').innerHTML = `
+                        <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                        <h5>Failed to Load Data</h5>
+                        <p class="text-muted">Unable to load student data. Please try again later.</p>
+                        <button class="btn btn-primary mt-3" onclick="loadData()">
+                            <i class="fas fa-redo"></i> Retry Loading Data
+                        </button>
+                    `;
+                }
             } finally {
                 // Hide loading popup
                 loadingModal.hide();
@@ -1657,7 +1856,7 @@ ASH Department - PCCOE`
             // Initialize DataTable for sorting and pagination
             dataTable = $('#studentTable').DataTable({
                 pageLength: 10,
-                lengthMenu: [], // Hide "Show entries" dropdown
+                lengthMenu: [],
                 language: {
                     search: "Search in results:",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
@@ -1665,7 +1864,7 @@ ASH Department - PCCOE`
                     infoFiltered: "(filtered from _MAX_ total entries)"
                 },
                 columnDefs: [
-                    { orderable: false, targets: 0 } // Disable sorting for checkbox column
+                    { orderable: false, targets: 0 }
                 ]
             });
             
@@ -1684,7 +1883,7 @@ ASH Department - PCCOE`
             updateSelectedCount();
             updateSelectAllCheckbox();
             
-            // Enable export button ONLY if we have search results (not for complete dataset)
+            // Enable export button ONLY if we have search results
             if (hasPerformedSearch && displayedStudents.length > 0) {
                 enableExportButton();
             } else {
@@ -1817,7 +2016,7 @@ ASH Department - PCCOE`
             const division = document.getElementById('divisionSearch').value.trim();
             
             if (!division) {
-                showNotification('Please enter a division to search.', 'error');
+                showNotification('Please select a division to search.', 'error');
                 return;
             }
             
@@ -1959,22 +2158,21 @@ ASH Department - PCCOE`
             
             // Replace various separators with comma
             let normalized = input
-                .replace(/;/g, ',')   // Replace semicolons with commas
-                .replace(/\t/g, ',')  // Replace tabs with commas
-                .replace(/\n/g, ',')  // Replace new lines with commas
-                .replace(/\s+/g, ','); // Replace multiple spaces with comma
+                .replace(/;/g, ',')
+                .replace(/\t/g, ',')
+                .replace(/\n/g, ',')
+                .replace(/\s+/g, ',');
             
             // Split by comma and clean up
             return normalized
                 .split(',')
                 .map(prn => prn.trim())
                 .filter(prn => prn.length > 0)
-                .filter((prn, index, self) => self.indexOf(prn) === index); // Remove duplicates
+                .filter((prn, index, self) => self.indexOf(prn) === index);
         }
         
         // Export search results to Excel
         function exportSearchResultsToExcel() {
-            // Check if export is enabled (only for search results)
             if (!hasPerformedSearch || displayedStudents.length === 0) {
                 showNotification('Please perform a search first to export results.', 'error');
                 return;
@@ -2004,7 +2202,7 @@ ASH Department - PCCOE`
                 ['Search Results Export'],
                 ['Search Criteria: ' + lastSearchCriteria],
                 ['Total Records: ' + displayedStudents.length],
-                [''], // Empty row
+                [''],
                 ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Batches', 'Division', 'Parent Email ID']
             ];
             
@@ -2031,17 +2229,17 @@ ASH Department - PCCOE`
             
             // Set column widths
             const colWidths = [
-                { wch: 8 },   // Sr. No.
-                { wch: 15 },  // Offering Year
-                { wch: 12 },  // PRN
-                { wch: 25 },  // Student Name
-                { wch: 15 },  // Student Mobile
-                { wch: 15 },  // Parent Mobile
-                { wch: 30 },  // Email ID
-                { wch: 15 },  // Branch
-                { wch: 10 },  // Batches
-                { wch: 10 },  // Division
-                { wch: 30 }   // Parent Email ID
+                { wch: 8 },
+                { wch: 15 },
+                { wch: 12 },
+                { wch: 25 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 30 },
+                { wch: 15 },
+                { wch: 10 },
+                { wch: 10 },
+                { wch: 30 }
             ];
             worksheet['!cols'] = colWidths;
             
@@ -2086,7 +2284,7 @@ ASH Department - PCCOE`
             // Get email draft for parents
             const draft = EMAIL_DRAFTS.parentEmail;
             
-            // Create Gmail URL with recipients, subject, and body
+            // Create Gmail URL
             const emailString = selectedParentEmails.join(',');
             const subject = encodeURIComponent(draft.subject);
             const body = encodeURIComponent(draft.body);
@@ -2132,7 +2330,7 @@ ASH Department - PCCOE`
                 return;
             }
             
-            // Create Gmail URL with recipients, subject, and body
+            // Create Gmail URL
             const emailString = selectedEmails.join(',');
             const subject = encodeURIComponent(draft.subject);
             const body = encodeURIComponent(draft.body);
@@ -2239,17 +2437,17 @@ ASH Department - PCCOE`
             
             selectedStudents.clear();
             
-            // IMPORTANT: Reset to initial state - show all data but disable export
+            // Reset to initial state
             hasPerformedSearch = false;
             displayedStudents = [...allStudents];
             initDataTable(displayedStudents);
             
-            // Reset search results to show total count but disable export
+            // Reset search results
             document.getElementById('searchResults').textContent = displayedStudents.length;
             document.getElementById('searchResultsCount').textContent = displayedStudents.length;
             document.getElementById('prnBadgesContainer').style.display = 'none';
             
-            // Disable export since we're showing complete dataset
+            // Disable export
             disableExportButton();
             
             showNotification('Search cleared, showing all students. Export is disabled for complete dataset.', 'info');
@@ -2261,11 +2459,6 @@ ASH Department - PCCOE`
             document.getElementById('searchResults').textContent = displayedStudents.length;
             document.getElementById('dataStatus').textContent = 'Loaded';
             document.getElementById('searchResultsCount').textContent = displayedStudents.length;
-        }
-        
-        // Show/hide loading
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
         
         // Copy to clipboard
@@ -2291,7 +2484,6 @@ ASH Department - PCCOE`
         function showNotification(message, type = 'success') {
             const bgColor = type === 'error' ? '#dc3545' : '#28a745';
             
-            // Create a temporary notification
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -2310,7 +2502,6 @@ ASH Department - PCCOE`
                 max-width: 300px;
             `;
             
-            // Add CSS for animation
             const style = document.createElement('style');
             style.textContent = `
                 @keyframes fadeInOut {
@@ -2328,7 +2519,6 @@ ASH Department - PCCOE`
             `;
             document.body.appendChild(notification);
             
-            // Remove after 2 seconds
             setTimeout(() => {
                 if (notification.parentNode) {
                     document.body.removeChild(notification);
