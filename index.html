@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ========== YOUR EXISTING STYLES (copy from your original) ========== */
         :root {
             --pccoe-blue: #1a237e;
             --pccoe-red: #d32f2f;
@@ -20,7 +19,7 @@
         .login-container { max-width: 450px; width: 100%; }
         .login-box { background: white; border-radius: 15px; padding: 2.5rem; box-shadow: 0 10px 30px rgba(26,35,126,0.2); border-top: 5px solid var(--pccoe-blue); }
         .main-container { display: none; width: 100%; max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .directory-header { background: linear-gradient(135deg, #1a237e 0%, #283593 100%); color: white; padding: 0.8rem 1.2rem; border-radius: 10px; margin: 1.5rem 0; display: flex; align-items: center; justify-content: space-between; }
+        .directory-header { background: linear-gradient(135deg, #1a237e 0%, #283593 100%); color: white; padding: 0.8rem 1.2rem; border-radius: 10px; margin: 1.5rem 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
         .search-box { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
         .table-container { max-height: 600px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 5px; margin-top: 10px; }
         .table th { background-color: var(--pccoe-blue); color: white; position: sticky; top: 0; }
@@ -31,8 +30,8 @@
         .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
         .badge-prn { background-color: #5c6bc0; color: white; padding: 3px 8px; border-radius: 4px; font-family: monospace; }
         .footer { padding: 1rem; background-color: var(--pccoe-blue); color: white; text-align: center; border-radius: 8px; margin-top: 2rem; }
-        @media (max-width:768px){ .directory-header { flex-direction: column; } }
-        /* Add any other missing styles from your original */
+        .stats-card { background: white; border-radius: 8px; padding: 1rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid var(--pccoe-blue); margin-bottom: 1rem; }
+        @media (max-width:768px){ .directory-header { flex-direction: column; text-align: center; } }
     </style>
 </head>
 <body>
@@ -62,9 +61,8 @@
     </div>
 </div>
 
-<!-- MAIN APPLICATION (hidden until login) -->
+<!-- MAIN APPLICATION -->
 <div class="main-container" id="mainSection">
-    <!-- Header -->
     <div class="directory-header">
         <div><img src="https://raw.githubusercontent.com/dineshkute90/pccoe_fy_contact_details/main/pccoe_logo.png" alt="Logo" style="height:70px"></div>
         <div class="text-center">
@@ -74,7 +72,6 @@
         <button class="btn btn-light" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </div>
 
-    <!-- Search Box (condensed example – add all your original search fields) -->
     <div class="search-box">
         <div class="row g-3">
             <div class="col-md-4">
@@ -121,7 +118,6 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
     <div class="row mb-3">
         <div class="col-md-3"><div class="stats-card"><i class="fas fa-users"></i><h5 id="totalStudents">0</h5><small>Total Students</small></div></div>
         <div class="col-md-3"><div class="stats-card"><i class="fas fa-database"></i><h5 id="dataStatus">-</h5><small>Data Status</small></div></div>
@@ -129,7 +125,6 @@
         <div class="col-md-3"><div class="stats-card"><i class="fas fa-check-circle"></i><h5 id="selectedForEmail">0</h5><small>Selected for Email</small></div></div>
     </div>
 
-    <!-- Data Table -->
     <div class="table-container">
         <table id="studentTable" class="table table-striped" style="width:100%">
             <thead>
@@ -145,7 +140,6 @@
     <div class="footer"><p>Prepared by Mr. Dinesh Kute | Updated: <span id="currentDate"></span></p></div>
 </div>
 
-<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
@@ -154,7 +148,7 @@
 
 <script>
     // ==================== CONFIGURATION ====================
-    const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyeD1a4fFunJ2LF3gVnEZTie9L2sGnTNSviz44DkN4krNmFBsp7FxpZcRQXjd1x8keP0g/exec';  // <-- REPLACE WITH YOUR DEPLOYED WEB APP URL
+    const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3t4qOJkaMzO-pEpC4KAO2Vj-vTgwxyLAwfjZEBe1ODZ8_O5B_eAVf3jqp6LaymK8GwA/exec'; // <-- REPLACE WITH YOUR WEB APP URL
 
     let allStudents = [];
     let displayedStudents = [];
@@ -163,28 +157,42 @@
     let sessionToken = null;
     let hasPerformedSearch = false;
 
-    // Helper: JSONP request
+    // JSONP request with timeout
     function jsonpRequest(params, onSuccess, onError) {
         const callbackName = 'jsonp_cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
         const script = document.createElement('script');
+        const timeout = setTimeout(() => {
+            if (window[callbackName]) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                onError('Request timeout (15s) – check Apps Script URL');
+            }
+        }, 15000);
+
         window[callbackName] = function(data) {
+            clearTimeout(timeout);
             delete window[callbackName];
             document.body.removeChild(script);
-            if (data && !data.error) onSuccess(data);
-            else onError(data && data.error ? data.error : 'Unknown error');
+            console.log('JSONP response:', data);
+            if (data && !data.error) {
+                onSuccess(data);
+            } else {
+                onError(data && data.error ? data.error : 'Server error');
+            }
         };
         const urlParams = new URLSearchParams(params);
         urlParams.set('callback', callbackName);
         script.src = `${APP_SCRIPT_URL}?${urlParams.toString()}`;
         script.onerror = () => {
+            clearTimeout(timeout);
             delete window[callbackName];
             document.body.removeChild(script);
-            onError('Network error or server unreachable');
+            onError('Network error – script failed to load');
         };
         document.body.appendChild(script);
     }
 
-    // Login handler
+    // Login
     document.getElementById('loginForm').addEventListener('submit', (e) => {
         e.preventDefault();
         const username = document.getElementById('username').value;
@@ -219,7 +227,8 @@
     });
 
     function loadStudentData() {
-        document.getElementById('dataStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        const statusEl = document.getElementById('dataStatus');
+        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
         jsonpRequest(
             { action: 'getStudents', token: sessionToken },
             (data) => {
@@ -231,7 +240,7 @@
                     document.getElementById('mainSection').style.display = 'block';
                     document.getElementById('totalStudents').innerText = allStudents.length;
                     document.getElementById('searchResults').innerText = allStudents.length;
-                    document.getElementById('dataStatus').innerHTML = 'Loaded';
+                    statusEl.innerHTML = 'Loaded';
                     document.getElementById('currentDate').innerText = new Date().toLocaleDateString();
                 } else {
                     alert('Failed to load data: ' + (data.error || 'Unknown error'));
@@ -245,7 +254,7 @@
         );
     }
 
-    // Initialize DataTable
+    // DataTable and helpers
     function initDataTable(students) {
         displayedStudents = students;
         if (dataTable) dataTable.destroy();
@@ -269,158 +278,39 @@
                 </tr>`;
             tbody.append(row);
         });
-        dataTable = $('#studentTable').DataTable({
-            pageLength: 10,
-            lengthMenu: [],
-            columnDefs: [{ orderable: false, targets: 0 }]
-        });
+        dataTable = $('#studentTable').DataTable({ pageLength: 10, lengthMenu: [], columnDefs: [{ orderable: false, targets: 0 }] });
         updateSelectedCount();
         updateExportButton();
     }
 
-    // Helper to escape HTML and attributes
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
     function escapeAttr(str) { if(!str) return ''; return str.replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;'); }
 
     // Search functions (client-side)
-    function searchSinglePRN() {
-        const prn = document.getElementById('singlePRNSearch').value.trim();
-        if(!prn) return;
-        hasPerformedSearch = true;
-        selectedStudents.clear();
-        const filtered = allStudents.filter(s => (s.PRN || '').toLowerCase().includes(prn.toLowerCase()));
-        renderSearchResults(filtered, `PRN: ${prn}`);
-    }
-    function searchByName() {
-        const name = document.getElementById('nameSearch').value.trim();
-        if(!name) return;
-        hasPerformedSearch = true;
-        selectedStudents.clear();
-        const filtered = allStudents.filter(s => (s['Student Name'] || '').toLowerCase().includes(name.toLowerCase()));
-        renderSearchResults(filtered, `name: ${name}`);
-    }
-    function searchByDivision() {
-        const div = document.getElementById('divisionSearch').value;
-        if(!div) return;
-        hasPerformedSearch = true;
-        selectedStudents.clear();
-        const filtered = allStudents.filter(s => (s['Division'] || '').toUpperCase() === div.toUpperCase());
-        renderSearchResults(filtered, `division: ${div}`);
-    }
-    function searchMultiplePRNs() {
-        const input = document.getElementById('multiPRNSearch').value;
-        if(!input) return;
-        const prns = input.split(/[,\s;]+/).map(p=>p.trim()).filter(p=>p);
-        if(prns.length===0) return;
-        hasPerformedSearch = true;
-        selectedStudents.clear();
-        const filtered = allStudents.filter(s => prns.some(p => (s.PRN || '').toLowerCase().includes(p.toLowerCase())));
-        renderSearchResults(filtered, `${prns.length} PRN(s)`);
-    }
-    function renderSearchResults(filtered, label) {
-        initDataTable(filtered);
-        document.getElementById('searchResults').innerText = filtered.length;
-        if(filtered.length === 0) alert(`No students found for ${label}`);
-        else updateExportButton();
-    }
-    function clearSearch() {
-        document.getElementById('singlePRNSearch').value = '';
-        document.getElementById('nameSearch').value = '';
-        document.getElementById('divisionSearch').value = '';
-        document.getElementById('multiPRNSearch').value = '';
-        selectedStudents.clear();
-        hasPerformedSearch = false;
-        initDataTable(allStudents);
-        document.getElementById('searchResults').innerText = allStudents.length;
-        updateExportButton();
-    }
-    function updateExportButton() {
-        const btn = document.getElementById('exportBtn');
-        if(hasPerformedSearch && displayedStudents.length > 0) btn.disabled = false;
-        else btn.disabled = true;
-    }
+    function searchSinglePRN() { const prn = document.getElementById('singlePRNSearch').value.trim(); if(!prn) return; hasPerformedSearch=true; selectedStudents.clear(); const filtered = allStudents.filter(s => (s.PRN||'').toLowerCase().includes(prn.toLowerCase())); renderSearchResults(filtered, `PRN: ${prn}`); }
+    function searchByName() { const name = document.getElementById('nameSearch').value.trim(); if(!name) return; hasPerformedSearch=true; selectedStudents.clear(); const filtered = allStudents.filter(s => (s['Student Name']||'').toLowerCase().includes(name.toLowerCase())); renderSearchResults(filtered, `name: ${name}`); }
+    function searchByDivision() { const div = document.getElementById('divisionSearch').value; if(!div) return; hasPerformedSearch=true; selectedStudents.clear(); const filtered = allStudents.filter(s => (s['Division']||'').toUpperCase() === div.toUpperCase()); renderSearchResults(filtered, `division: ${div}`); }
+    function searchMultiplePRNs() { const input = document.getElementById('multiPRNSearch').value; if(!input) return; const prns = input.split(/[,\s;]+/).map(p=>p.trim()).filter(p=>p); if(prns.length===0) return; hasPerformedSearch=true; selectedStudents.clear(); const filtered = allStudents.filter(s => prns.some(p => (s.PRN||'').toLowerCase().includes(p.toLowerCase()))); renderSearchResults(filtered, `${prns.length} PRN(s)`); }
+    function renderSearchResults(filtered, label) { initDataTable(filtered); document.getElementById('searchResults').innerText = filtered.length; if(filtered.length===0) alert(`No students found for ${label}`); else updateExportButton(); }
+    function clearSearch() { document.getElementById('singlePRNSearch').value=''; document.getElementById('nameSearch').value=''; document.getElementById('divisionSearch').value=''; document.getElementById('multiPRNSearch').value=''; selectedStudents.clear(); hasPerformedSearch=false; initDataTable(allStudents); document.getElementById('searchResults').innerText = allStudents.length; updateExportButton(); }
+    function updateExportButton() { const btn = document.getElementById('exportBtn'); if(hasPerformedSearch && displayedStudents.length>0) btn.disabled=false; else btn.disabled=true; }
 
     // Export to Excel
-    function exportSearchResultsToExcel() {
-        if(!hasPerformedSearch || displayedStudents.length === 0) { alert('No search results to export.'); return; }
-        const wsData = [
-            ['PCCOE Student Directory - Search Results'],
-            ['Exported: ' + new Date().toLocaleString()],
-            ['Total Records: ' + displayedStudents.length],
-            [],
-            ['Sr. No.', 'Offering Year', 'PRN', 'Student Name', 'Student Mobile', 'Parent Mobile', 'Email ID', 'Branch', 'Batches', 'Division', 'Parent Email ID']
-        ];
-        displayedStudents.forEach((s,i) => {
-            wsData.push([s['Sr. No.']||i+1, s['Offering Year']||'', s.PRN||'', s['Student Name']||'', s['Student Mobile']||'', s['Parent Mobile']||'', s['Email ID']||'', s['Branch']||'', s['Batches']||'', s['Division']||'', s['Parent Email ID']||'']);
-        });
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, 'Search Results');
-        XLSX.writeFile(wb, `PCCOE_Search_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`);
-    }
+    function exportSearchResultsToExcel() { if(!hasPerformedSearch || displayedStudents.length===0) { alert('No search results to export.'); return; } const wsData = [['PCCOE Student Directory - Search Results'],['Exported: '+new Date().toLocaleString()],['Total Records: '+displayedStudents.length],[],['Sr. No.','Offering Year','PRN','Student Name','Student Mobile','Parent Mobile','Email ID','Branch','Batches','Division','Parent Email ID']]; displayedStudents.forEach((s,i)=>{ wsData.push([s['Sr. No.']||i+1, s['Offering Year']||'', s.PRN||'', s['Student Name']||'', s['Student Mobile']||'', s['Parent Mobile']||'', s['Email ID']||'', s['Branch']||'', s['Batches']||'', s['Division']||'', s['Parent Email ID']||'']); }); const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); XLSX.utils.book_append_sheet(wb, ws, 'Search Results'); XLSX.writeFile(wb, `PCCOE_Search_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`); }
 
     // Email functions
-    const EMAIL_DRAFTS = {
-        openDay: { subject: "Open Day Schedule", body: "Dear Students,\n\nOpen Day schedule is attached.\n\nRegards,\nASH Department" },
-        faSchedule: { subject: "FA Schedule", body: "Dear Students,\n\nFormative Assessment schedule has been published.\n\nThank you." },
-        custom: { subject: "Important Announcement", body: "Dear Students,\n\n[Your message here]\n\nBest regards" },
-        parentEmail: { subject: "Information for Parents", body: "Respected Parents,\n\n[Your message here]\n\nRegards" }
-    };
+    const EMAIL_DRAFTS = { openDay: { subject: "Open Day Schedule", body: "Dear Students,\n\nOpen Day schedule is attached.\n\nRegards,\nASH Department" }, faSchedule: { subject: "FA Schedule", body: "Dear Students,\n\nFormative Assessment schedule has been published.\n\nThank you." }, custom: { subject: "Important Announcement", body: "Dear Students,\n\n[Your message here]\n\nBest regards" }, parentEmail: { subject: "Information for Parents", body: "Respected Parents,\n\n[Your message here]\n\nRegards" } };
     function toggleEmailDropdown() { $('#emailDropdown').toggle(); }
-    function sendEmailWithDraft(type) {
-        if(selectedStudents.size === 0) { alert('Select at least one student.'); return; }
-        const emails = allStudents.filter(s=>selectedStudents.has(s._id) && s['Email ID']).map(s=>s['Email ID']);
-        if(emails.length===0) { alert('No email addresses found.'); return; }
-        const draft = EMAIL_DRAFTS[type];
-        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emails.join(',')}&su=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`, '_blank');
-        $('#emailDropdown').hide();
-    }
-    function sendEmailToParent() {
-        if(selectedStudents.size === 0) { alert('Select at least one student.'); return; }
-        const emails = allStudents.filter(s=>selectedStudents.has(s._id) && s['Parent Email ID']).map(s=>s['Parent Email ID']);
-        if(emails.length===0) { alert('No parent emails found.'); return; }
-        const draft = EMAIL_DRAFTS.parentEmail;
-        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emails.join(',')}&su=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`, '_blank');
-        $('#emailDropdown').hide();
-    }
+    function sendEmailWithDraft(type) { if(selectedStudents.size===0) { alert('Select at least one student.'); return; } const emails = allStudents.filter(s=>selectedStudents.has(s._id) && s['Email ID']).map(s=>s['Email ID']); if(emails.length===0) { alert('No email addresses found.'); return; } const draft = EMAIL_DRAFTS[type]; window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emails.join(',')}&su=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`, '_blank'); $('#emailDropdown').hide(); }
+    function sendEmailToParent() { if(selectedStudents.size===0) { alert('Select at least one student.'); return; } const emails = allStudents.filter(s=>selectedStudents.has(s._id) && s['Parent Email ID']).map(s=>s['Parent Email ID']); if(emails.length===0) { alert('No parent emails found.'); return; } const draft = EMAIL_DRAFTS.parentEmail; window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emails.join(',')}&su=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`, '_blank'); $('#emailDropdown').hide(); }
 
     // Selection handling
-    function toggleStudentSelection(id) {
-        if(selectedStudents.has(id)) selectedStudents.delete(id);
-        else selectedStudents.add(id);
-        updateSelectedCount();
-        updateSelectAllCheckbox();
-    }
-    function toggleSelectAll() {
-        const cb = document.getElementById('selectAllCheckbox');
-        const checkboxes = document.querySelectorAll('.student-checkbox');
-        if(cb.checked) {
-            displayedStudents.forEach(s => selectedStudents.add(s._id));
-            checkboxes.forEach(c => c.checked = true);
-        } else {
-            selectedStudents.clear();
-            checkboxes.forEach(c => c.checked = false);
-        }
-        updateSelectedCount();
-    }
-    function updateSelectedCount() {
-        const cnt = selectedStudents.size;
-        document.getElementById('selectedCount').innerText = cnt;
-        document.getElementById('selectedForEmail').innerText = cnt;
-        document.getElementById('emailDraftBtn').disabled = cnt === 0;
-    }
-    function updateSelectAllCheckbox() {
-        const total = displayedStudents.length;
-        const selected = displayedStudents.filter(s => selectedStudents.has(s._id)).length;
-        const cb = document.getElementById('selectAllCheckbox');
-        if(selected === 0) { cb.checked = false; cb.indeterminate = false; }
-        else if(selected === total) { cb.checked = true; cb.indeterminate = false; }
-        else { cb.checked = false; cb.indeterminate = true; }
-    }
+    function toggleStudentSelection(id) { if(selectedStudents.has(id)) selectedStudents.delete(id); else selectedStudents.add(id); updateSelectedCount(); updateSelectAllCheckbox(); }
+    function toggleSelectAll() { const cb = document.getElementById('selectAllCheckbox'); const checkboxes = document.querySelectorAll('.student-checkbox'); if(cb.checked) { displayedStudents.forEach(s => selectedStudents.add(s._id)); checkboxes.forEach(c => c.checked = true); } else { selectedStudents.clear(); checkboxes.forEach(c => c.checked = false); } updateSelectedCount(); }
+    function updateSelectedCount() { const cnt = selectedStudents.size; document.getElementById('selectedCount').innerText = cnt; document.getElementById('selectedForEmail').innerText = cnt; document.getElementById('emailDraftBtn').disabled = cnt === 0; }
+    function updateSelectAllCheckbox() { const total = displayedStudents.length; const selected = displayedStudents.filter(s => selectedStudents.has(s._id)).length; const cb = document.getElementById('selectAllCheckbox'); if(selected===0) { cb.checked=false; cb.indeterminate=false; } else if(selected===total) { cb.checked=true; cb.indeterminate=false; } else { cb.checked=false; cb.indeterminate=true; } }
     function copyToClipboard(text, label) { if(text) navigator.clipboard.writeText(text).then(()=>alert(label+' copied')); }
     function logout() { sessionToken = null; location.reload(); }
-
-    // Close email dropdown on outside click
     $(document).click(function(e) { if(!$(e.target).closest('.email-dropdown').length) $('#emailDropdown').hide(); });
 </script>
 </body>
